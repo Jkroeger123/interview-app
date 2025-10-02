@@ -74,7 +74,7 @@ export function AvatarDisplay({
 
             {/* User's camera feed - Picture in Picture */}
             {localParticipant.cameraTrack && cameraVisible && (
-              <div className="absolute bottom-4 right-4 w-48 aspect-video rounded-lg overflow-hidden shadow-2xl border-2 border-white/20 transition-opacity duration-300">
+              <div className="absolute bottom-4 right-4 w-24 sm:w-32 md:w-40 lg:w-48 aspect-video rounded-lg overflow-hidden shadow-2xl border-2 border-white/20 transition-opacity duration-300">
                 <VideoTrack
                   trackRef={{
                     participant: localParticipant.localParticipant,
@@ -83,8 +83,10 @@ export function AvatarDisplay({
                   }}
                   className="w-full h-full object-cover scale-x-[-1]"
                 />
-                <div className="absolute bottom-2 left-2 rounded bg-black/50 px-2 py-1 backdrop-blur-sm">
-                  <p className="text-xs font-medium text-white">You</p>
+                <div className="absolute bottom-1 left-1 sm:bottom-2 sm:left-2 rounded bg-black/50 px-1.5 py-0.5 sm:px-2 sm:py-1 backdrop-blur-sm">
+                  <p className="text-[10px] sm:text-xs font-medium text-white">
+                    You
+                  </p>
                 </div>
               </div>
             )}
