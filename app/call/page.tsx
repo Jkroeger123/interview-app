@@ -9,7 +9,7 @@ const config: LiveKitConfig = {
   supportsVideoInput: false,
   supportsScreenShare: false,
   isPreConnectBufferEnabled: true,
-  agentName: undefined, // Optional: specify agent name from your LiveKit agent
+  agentName: "CA_o2EaHmp4UmTc", // Interview agent ID - ensures correct agent joins
 };
 
 export default function CallPage() {
