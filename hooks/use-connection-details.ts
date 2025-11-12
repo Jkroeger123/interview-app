@@ -1,21 +1,26 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { decodeJwt } from "jose";
 import type { ConnectionDetails, LiveKitConfig } from "@/lib/types/livekit";
+import type { AgentConfig } from "@/lib/agent-config-builder";
 
 const ONE_MINUTE_IN_MILLISECONDS = 60 * 1000;
 
-export function useConnectionDetails(config: LiveKitConfig) {
+export function useConnectionDetails(config: LiveKitConfig, agentConfig?: AgentConfig) {
   const [connectionDetails, setConnectionDetails] =
     useState<ConnectionDetails | null>(null);
+  
+  // Generate a stable session ID that persists for this hook instance
+  // Useful for debugging room names
+  const [sessionId] = useState(() => Math.random().toString(36).substring(2, 15));
 
   const fetchConnectionDetails = useCallback(async () => {
-    setConnectionDetails(null);
+    console.log("🟢 Fetching connection details from API", { sessionId });
+    
     const url = new URL(
       "/api/livekit/connection-details",
       window.location.origin
     );
 
-    let data: ConnectionDetails;
     try {
       const res = await fetch(url.toString(), {
         method: "POST",
@@ -28,6 +33,8 @@ export function useConnectionDetails(config: LiveKitConfig) {
                 agents: [{ agent_name: config.agentName }],
               }
             : undefined,
+          agent_config: agentConfig, // Pass agent configuration
+          session_id: sessionId, // Pass session ID for stable room naming
         }),
       });
 
@@ -35,19 +42,26 @@ export function useConnectionDetails(config: LiveKitConfig) {
         throw new Error(`HTTP error! status: ${res.status}`);
       }
 
-      data = await res.json();
+      const data = await res.json();
+      console.log("✅ Got connection details", {
+        roomName: data.roomName,
+        serverUrl: data.serverUrl,
+        sessionId,
+      });
+
+      setConnectionDetails(data);
+      return data;
     } catch (error) {
-      console.error("Error fetching connection details:", error);
+      console.error("❌ Failed to fetch connection details", {
+        error,
+        sessionId,
+      });
       throw new Error("Error fetching connection details!");
     }
+  }, [config.agentName, agentConfig, sessionId]);
 
-    setConnectionDetails(data);
-    return data;
-  }, [config.agentName]);
-
-  useEffect(() => {
-    fetchConnectionDetails();
-  }, [fetchConnectionDetails]);
+  // Don't fetch on mount - let the component fetch when needed
+  // This prevents React Strict Mode from creating duplicate rooms
 
   const isConnectionDetailsExpired = useCallback(() => {
     const token = connectionDetails?.participantToken;
@@ -67,12 +81,13 @@ export function useConnectionDetails(config: LiveKitConfig) {
     return expiresAt <= now;
   }, [connectionDetails?.participantToken]);
 
+  // Simplified: always fetch if we don't have details or they're expired
+  // Since we create fresh rooms now, no need for complex caching
   const existingOrRefreshConnectionDetails = useCallback(async () => {
-    if (isConnectionDetailsExpired() || !connectionDetails) {
+    if (!connectionDetails || isConnectionDetailsExpired()) {
       return fetchConnectionDetails();
-    } else {
-      return connectionDetails;
     }
+    return connectionDetails;
   }, [connectionDetails, fetchConnectionDetails, isConnectionDetailsExpired]);
 
   return {

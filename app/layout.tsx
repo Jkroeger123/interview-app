@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
+import { InterviewProvider } from "@/lib/contexts/interview-context";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -14,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Interview App",
-  description: "Full-stack starter with Next.js, Clerk, Prisma, and shadcn/ui",
+  title: "Vysa - AI Visa Interview Practice",
+  description: "Practice for your U.S. visa interview with AI-powered realistic simulations",
 };
 
 export default function RootLayout({
@@ -29,7 +30,9 @@ export default function RootLayout({
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         >
-          {children}
+          <InterviewProvider>
+            {children}
+          </InterviewProvider>
         </body>
       </html>
     </ClerkProvider>

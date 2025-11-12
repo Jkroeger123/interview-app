@@ -20,9 +20,10 @@ export function AvatarDisplay({
   onVideoReady,
   cameraVisible = true,
 }: AvatarDisplayProps) {
-  const { videoTrack, agent } = useVoiceAssistant();
+  const { videoTrack, agent, state: agentState } = useVoiceAssistant();
   const localParticipant = useLocalParticipant();
   const [videoPlaying, setVideoPlaying] = useState(false);
+  const [agentHasLeft, setAgentHasLeft] = useState(false);
   const videoReadyRef = useRef(false);
 
   // Enable camera when session starts
@@ -52,6 +53,14 @@ export function AvatarDisplay({
       return () => clearTimeout(timer);
     }
   }, [videoTrack, onVideoReady]);
+
+  // Detect when agent leaves after having joined
+  useEffect(() => {
+    if (videoPlaying && !videoTrack && !agent) {
+      // Agent was there, now they're gone
+      setAgentHasLeft(true);
+    }
+  }, [videoTrack, agent, videoPlaying]);
 
   if (!sessionStarted) {
     return null;
@@ -93,9 +102,20 @@ export function AvatarDisplay({
           </>
         ) : (
           <div className="flex items-center justify-center w-full h-full bg-muted">
-            <div className="flex size-24 items-center justify-center rounded-full bg-primary/10">
-              <div className="size-16 rounded-full bg-primary/20 animate-pulse" />
-            </div>
+            {agentHasLeft ? (
+              <div className="text-center px-8">
+                <p className="text-lg font-medium text-muted-foreground mb-2">
+                  The interviewer has left the call
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Feel free to hang up now
+                </p>
+              </div>
+            ) : (
+              <div className="flex size-24 items-center justify-center rounded-full bg-primary/10">
+                <div className="size-16 rounded-full bg-primary/20 animate-pulse" />
+              </div>
+            )}
           </div>
         )}
 

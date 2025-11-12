@@ -1,6 +1,6 @@
-# Interview App - Full-Stack Next.js Starter
+# Vysa - AI Visa Interview Practice Platform
 
-A production-ready Next.js starter template with authentication, database, and modern UI components.
+An AI-powered visa interview simulation platform that helps applicants prepare for U.S. visa interviews with realistic practice sessions.
 
 ## 🚀 Tech Stack
 

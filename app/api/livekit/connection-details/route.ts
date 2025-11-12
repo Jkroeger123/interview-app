@@ -4,6 +4,7 @@ import {
   AccessToken,
   type AccessTokenOptions,
   type VideoGrant,
+  RoomServiceClient,
 } from "livekit-server-sdk";
 import { RoomConfiguration } from "@livekit/protocol";
 import type { ConnectionDetails } from "@/lib/types/livekit";
@@ -36,14 +37,67 @@ export async function POST(req: Request) {
     // Parse agent configuration from request body
     const body = await req.json();
     const agentName: string = body?.room_config?.agents?.[0]?.agent_name;
+    const agentConfig = body?.agent_config; // Agent configuration for interview
+    const sessionId: string = body?.session_id; // Session ID from client for stable room naming
+
+    console.log("🟢 API: Received connection request");
+    console.log("🟢 API: Agent name:", agentName);
+    console.log("🟢 API: Agent config:", agentConfig ? "present" : "missing");
+    console.log("🟢 API: Session ID:", sessionId);
 
     // Generate participant token with user info from Clerk
     const participantName =
       user.firstName || user.emailAddresses[0]?.emailAddress || "User";
     const participantIdentity = user.id;
-    const roomName = `voice_assistant_room_${Math.floor(
-      Math.random() * 10_000
-    )}`;
+    
+    // Create room service client
+    const roomService = new RoomServiceClient(LIVEKIT_URL, API_KEY, API_SECRET);
+    
+    // Always create a fresh room for each interview
+    // Use session ID from client for stable room naming (useful for debugging)
+    const roomName = `interview_${participantIdentity}_${sessionId || Date.now()}`;
+    console.log("🟢 API: Creating fresh room:", roomName);
+
+    if (agentConfig) {
+      try {
+        const metadataString = JSON.stringify(agentConfig);
+
+        await roomService.createRoom({
+          name: roomName,
+          emptyTimeout: 5 * 60, // 5 minutes
+          maxParticipants: 10,
+          metadata: metadataString,
+        });
+
+        // Small delay to ensure metadata propagates before agent joins
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        console.log("🟢 API: Room created with metadata");
+      } catch (error: any) {
+        // Room might already exist (unlikely but handle it), try to update metadata
+        console.log("🟡 API: Room exists, updating metadata");
+        try {
+          const metadataString = JSON.stringify(agentConfig);
+          await roomService.updateRoomMetadata(roomName, metadataString);
+          await new Promise((resolve) => setTimeout(resolve, 200));
+          console.log("🟢 API: Metadata updated");
+        } catch (updateError: any) {
+          console.error("❌ API: Error setting room metadata:", updateError.message);
+        }
+      }
+    } else {
+      // Create room without metadata
+      try {
+        await roomService.createRoom({
+          name: roomName,
+          emptyTimeout: 5 * 60,
+          maxParticipants: 10,
+        });
+        console.log("🟢 API: Room created (no metadata)");
+      } catch (error: any) {
+        // Room already exists, that's fine
+        console.log("🟡 API: Room already exists:", roomName);
+      }
+    }
 
     const participantToken = await createParticipantToken(
       { identity: participantIdentity, name: participantName },
@@ -58,6 +112,10 @@ export async function POST(req: Request) {
       participantToken: participantToken,
       participantName,
     };
+
+    console.log("🟢 API: Sending response:");
+    console.log("🟢 API: Server URL:", LIVEKIT_URL);
+    console.log("🟢 API: Room name:", roomName);
 
     const headers = new Headers({
       "Cache-Control": "no-store",
@@ -97,6 +155,9 @@ function createParticipantToken(
       agents: [{ agentName }],
     });
   }
+
+  // Note: Agent config is set as ROOM metadata (not participant metadata)
+  // The agent reads it from ctx.room.metadata when it joins
 
   return at.toJwt();
 }

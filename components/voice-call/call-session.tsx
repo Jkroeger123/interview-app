@@ -35,6 +35,7 @@ export function CallSession({
   const room = useRoomContext();
   const [interviewerJoined, setInterviewerJoined] = useState(false);
   const [cameraVisible, setCameraVisible] = useState(true);
+  const [startTime, setStartTime] = useState<number | null>(null);
 
   useEffect(() => {
     if (sessionStarted) {
@@ -55,6 +56,45 @@ export function CallSession({
       return () => clearTimeout(timeout);
     }
   }, [agentState, sessionStarted, room]);
+
+  // Track interview start time
+  useEffect(() => {
+    if (sessionStarted && interviewerJoined && !startTime) {
+      setStartTime(Date.now());
+    }
+  }, [sessionStarted, interviewerJoined, startTime]);
+
+  // Send time updates to agent every minute
+  useEffect(() => {
+    if (!startTime || !room || room.state !== "connected") {
+      return;
+    }
+
+    const sendTimeUpdate = () => {
+      const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+      const encoder = new TextEncoder();
+      const data = encoder.encode(
+        JSON.stringify({
+          type: "time_update",
+          elapsed: elapsedSeconds,
+        })
+      );
+
+      try {
+        room.localParticipant.publishData(data, { reliable: true });
+      } catch (error) {
+        console.error("Failed to send time update:", error);
+      }
+    };
+
+    // Send initial update
+    sendTimeUpdate();
+
+    // Send updates every minute
+    const interval = setInterval(sendTimeUpdate, 60_000);
+
+    return () => clearInterval(interval);
+  }, [startTime, room]);
 
   // Handle when video is actually ready
   const handleVideoReady = () => {

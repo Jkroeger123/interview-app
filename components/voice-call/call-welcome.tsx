@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 
 interface CallWelcomeProps {
   disabled: boolean;
-  onStartCall: () => void;
+  onStartCall: () => void | Promise<void>;
 }
 
 export function CallWelcome({ disabled, onStartCall }: CallWelcomeProps) {
@@ -21,9 +21,9 @@ export function CallWelcome({ disabled, onStartCall }: CallWelcomeProps) {
         <Building2 className="size-10 text-blue-600" />
       </div>
 
-      <h1 className="mb-2 text-3xl font-bold">U.S. Visa Interview Simulator</h1>
+      <h1 className="mb-2 text-3xl font-bold">Vysa Interview Practice</h1>
       <p className="mb-4 text-lg text-muted-foreground">
-        Mock Interview Practice
+        AI-Powered Visa Interview Simulator
       </p>
       <p className="mb-8 max-w-lg text-sm text-muted-foreground">
         Prepare for your visa interview with realistic practice. The AI officer
