@@ -14,6 +14,7 @@ import { buildAgentConfig } from "@/lib/agent-config-builder";
 import { CallInterface, type CallInterfaceHandle } from "@/components/voice-call/call-interface";
 import { Toaster } from "@/components/ui/sonner";
 import type { LiveKitConfig } from "@/lib/types/livekit";
+import { useDocumentCounts } from "@/lib/hooks/use-documents";
 
 export default function InterviewReadyPage() {
   const router = useRouter();
@@ -21,6 +22,9 @@ export default function InterviewReadyPage() {
   const { user } = useUser();
   const [interviewStarted, setInterviewStarted] = useState(false);
   const callInterfaceRef = useRef<CallInterfaceHandle>(null);
+  
+  // Use React Query hook for document counts
+  const documentCount = useDocumentCounts(configuration.visaType || "student");
 
   // Redirect if no visa type is selected
   useEffect(() => {
@@ -191,9 +195,9 @@ export default function InterviewReadyPage() {
             <div className="flex-1">
               <p className="text-sm text-muted-foreground mb-2">Documents Uploaded</p>
               <h3 className="text-xl font-semibold">
-                {configuration.documents.length} document{configuration.documents.length !== 1 ? "s" : ""}
+                {documentCount.uploaded} document{documentCount.uploaded !== 1 ? "s" : ""}
               </h3>
-              {configuration.documents.length > 0 ? (
+              {documentCount.uploaded > 0 ? (
                 <p className="text-sm text-muted-foreground mt-1">
                   These will be referenced during your interview
                 </p>
@@ -214,12 +218,6 @@ export default function InterviewReadyPage() {
               <span className="text-blue-600">•</span>
               <span>Ensure you're in a quiet environment</span>
             </li>
-            {configuration.documents.length > 0 && (
-              <li className="flex gap-2">
-                <span className="text-blue-600">•</span>
-                <span>Have your documents ready for reference</span>
-              </li>
-            )}
             <li className="flex gap-2">
               <span className="text-blue-600">•</span>
               <span>The interviewer will be professional but may be skeptical</span>

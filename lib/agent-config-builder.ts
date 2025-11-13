@@ -65,8 +65,9 @@ export function buildAgentConfig(
   // Build Ragie partition names
   // Global partition: visa-{visaType} (for reference documents)
   // User partition: visa-{visaType}-user-{userId} (for user-uploaded documents)
+  // Note: Ragie requires lowercase only (pattern: ^[a-z0-9_-]+$)
   const globalPartition = `visa-${configuration.visaType}`;
-  const userPartition = `visa-${configuration.visaType}-user-${userInfo.userId}`;
+  const userPartition = `visa-${configuration.visaType}-user-${userInfo.userId.toLowerCase()}`;
 
   const ragiePartitions = [globalPartition, userPartition];
 

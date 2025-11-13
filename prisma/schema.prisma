@@ -24,6 +24,49 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  documents UserDocument[]
+
   @@index([clerkId])
   @@index([email])
+}
+
+// User documents uploaded to Ragie
+model DocumentType {
+  id            String   @id @default(uuid())
+  visaType      String   // e.g., "student", "tourist", "work"
+  internalName  String   // e.g., "ds_160", "i20_form"
+  friendlyName  String   // e.g., "DS-160 Confirmation Page", "I-20 Form"
+  description   String?  // Optional description or instructions
+  isRequired    Boolean  @default(false) // Whether this document is required
+  sortOrder     Int      @default(0) // For ordering in UI
+  createdAt     DateTime @default(now())
+
+  documents UserDocument[]
+
+  @@unique([visaType, internalName])
+  @@index([visaType])
+}
+
+model UserDocument {
+  id             String   @id @default(uuid())
+  userId         String
+  clerkId        String   // Denormalized for easier querying
+  documentTypeId String   // Reference to DocumentType
+  filename       String
+  ragieFileId    String   @unique // Ragie's file ID
+  fileSize       Int      // Size in bytes
+  mimeType       String   // e.g., "application/pdf"
+  status         String   @default("processing") // "processing", "ready", "failed"
+  uploadedAt     DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documentType DocumentType @relation(fields: [documentTypeId], references: [id], onDelete: Cascade)
+
+  // Only one document per type per user
+  @@unique([userId, documentTypeId])
+  @@index([userId])
+  @@index([clerkId])
+  @@index([ragieFileId])
+  @@index([documentTypeId])
 }

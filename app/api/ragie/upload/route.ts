@@ -43,7 +43,8 @@ export async function POST(req: Request) {
     // Use partition to segment by visa type
     // Format: visa-{visaType}-user-{userId}
     // This allows querying all user docs for a visa type while keeping them isolated
-    const partition = `visa-${visaType}-user-${user.id}`;
+    // Note: Ragie requires lowercase only (pattern: ^[a-z0-9_-]+$)
+    const partition = `visa-${visaType}-user-${user.id.toLowerCase()}`;
     ragieFormData.append("partition", partition);
 
     // Upload to Ragie

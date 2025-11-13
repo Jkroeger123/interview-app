@@ -1,5 +1,6 @@
 import { UserButton } from "@clerk/nextjs";
 import Link from "next/link";
+import { FileText } from "lucide-react";
 
 export function Navbar() {
   return (
@@ -9,7 +10,14 @@ export function Navbar() {
           Vysa
         </Link>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-6">
+          <Link
+            href="/documents"
+            className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <FileText className="w-4 h-4" />
+            My Documents
+          </Link>
           <UserButton />
         </div>
       </div>
