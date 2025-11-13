@@ -193,12 +193,15 @@ export async function uploadDocument(formData: FormData) {
       userName:
         user.firstName || user.emailAddresses[0]?.emailAddress || "Unknown",
       fileName: file.name,
+      visaType: visaType,
       documentType: documentType.friendlyName,
+      documentInternalName: documentType.internalName,
       uploadedAt: new Date().toISOString(),
     };
     ragieFormData.append("metadata", JSON.stringify(metadata));
 
-    const partition = `visa-${visaType}-user-${user.id.toLowerCase()}`;
+    // Simplified partition: just user-{userId} (no visa type prefix)
+    const partition = `user-${user.id.toLowerCase()}`;
     ragieFormData.append("partition", partition);
 
     console.log("📤 DOCUMENT UPLOAD:");
@@ -337,7 +340,8 @@ export async function deleteDocument(documentId: string) {
       return { success: false, error: "Forbidden" };
     }
 
-    const partition = `visa-student-user-${document.clerkId.toLowerCase()}`;
+    // Simplified partition: just user-{userId}
+    const partition = `user-${document.clerkId.toLowerCase()}`;
 
     // Delete from Ragie
     try {
@@ -395,6 +399,121 @@ export async function deleteDocument(documentId: string) {
   }
 }
 
+// Batch check statuses directly from Ragie (for polling)
+export async function checkRagieStatuses(documentIds: string[]) {
+  try {
+    const user = await currentUser();
+    if (!user) {
+      throw new Error("Unauthorized");
+    }
+
+    if (!RAGIE_API_KEY) {
+      throw new Error("RAGIE_API_KEY is not defined");
+    }
+
+    console.log(`🔄 Checking Ragie status for ${documentIds.length} documents`);
+
+    const results = await Promise.all(
+      documentIds.map(async (documentId) => {
+        try {
+          const document = await prisma.userDocument.findUnique({
+            where: { id: documentId },
+          });
+
+          if (!document || document.clerkId !== user.id) {
+            return {
+              documentId,
+              status: null,
+              error: "Not found or forbidden",
+            };
+          }
+
+          if (!document.ragieFileId) {
+            return {
+              documentId,
+              status: document.status,
+              error: "No Ragie file ID",
+            };
+          }
+
+          const partition = `user-${document.clerkId.toLowerCase()}`;
+
+          const response = await fetch(
+            `${RAGIE_API_URL}/${document.ragieFileId}`,
+            {
+              headers: {
+                Authorization: `Bearer ${RAGIE_API_KEY}`,
+                partition: partition,
+              },
+            }
+          );
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error(
+              `❌ Ragie API error for ${document.filename} (${response.status}):`,
+              errorText
+            );
+            return {
+              documentId,
+              status: document.status,
+              error: `API error: ${response.status}`,
+            };
+          }
+
+          const ragieDoc = await response.json();
+          console.log(`📄 Ragie status for ${document.filename}:`, {
+            ragieFileId: document.ragieFileId,
+            status: ragieDoc.status,
+            errors: ragieDoc.errors?.length || 0,
+          });
+
+          let newStatus = document.status;
+          if (ragieDoc.status === "ready") {
+            newStatus = "ready";
+          } else if (
+            ragieDoc.status === "failed" ||
+            ragieDoc.errors?.length > 0
+          ) {
+            newStatus = "failed";
+          } else if (
+            ragieDoc.status === "processing" ||
+            ragieDoc.status === "indexing" ||
+            ragieDoc.status === "partitioning"
+          ) {
+            newStatus = "processing";
+          }
+
+          // Update DB if status changed
+          if (newStatus !== document.status) {
+            console.log(
+              `✅ Updating ${document.filename}: ${document.status} → ${newStatus}`
+            );
+            await prisma.userDocument.update({
+              where: { id: documentId },
+              data: { status: newStatus },
+            });
+          }
+
+          return {
+            documentId,
+            status: newStatus,
+            ragieStatus: ragieDoc.status,
+          };
+        } catch (error) {
+          console.error(`❌ Error checking document ${documentId}:`, error);
+          return { documentId, status: null, error: String(error) };
+        }
+      })
+    );
+
+    return { success: true, results };
+  } catch (error) {
+    console.error("Error in checkRagieStatuses:", error);
+    return { success: false, error: String(error) };
+  }
+}
+
 // Check document status from Ragie
 export async function checkDocumentStatus(documentId: string) {
   try {
@@ -419,7 +538,8 @@ export async function checkDocumentStatus(documentId: string) {
       return { success: false, error: "Forbidden" };
     }
 
-    const partition = `visa-student-user-${document.clerkId.toLowerCase()}`;
+    // Simplified partition: just user-{userId}
+    const partition = `user-${document.clerkId.toLowerCase()}`;
 
     console.log("🔍 Checking document status in Ragie:");
     console.log("   Document ID:", documentId);
@@ -449,7 +569,10 @@ export async function checkDocumentStatus(documentId: string) {
     }
 
     const ragieDoc = await response.json();
-    console.log("📄 Ragie document response:", ragieDoc);
+    console.log(
+      "📄 Ragie document response:",
+      JSON.stringify(ragieDoc, null, 2)
+    );
 
     let newStatus = document.status;
 

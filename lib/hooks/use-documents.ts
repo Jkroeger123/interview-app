@@ -4,8 +4,10 @@ import {
   uploadDocument,
   deleteDocument,
   checkDocumentStatus,
+  checkRagieStatuses,
 } from "@/server/document-actions";
 import { toast } from "sonner";
+import { useEffect } from "react";
 
 // Query keys
 export const documentKeys = {
@@ -15,9 +17,11 @@ export const documentKeys = {
   status: (documentId: string) => [...documentKeys.all, "status", documentId] as const,
 };
 
-// Hook to get user documents
+// Hook to get user documents (fetches from DB once, no polling)
 export function useDocuments(visaType: string = "student") {
-  return useQuery({
+  const queryClient = useQueryClient();
+  
+  const query = useQuery({
     queryKey: documentKeys.list(visaType),
     queryFn: async () => {
       const result = await getUserDocuments(visaType);
@@ -26,19 +30,53 @@ export function useDocuments(visaType: string = "student") {
       }
       return result.data || [];
     },
-    // Poll every 5 seconds if there are processing documents
-    refetchInterval: (query) => {
-      const data = query.state.data;
-      if (!data) return false;
-      
-      const hasProcessingDocs = data.some((item) => {
-        const status = item.document?.status;
-        return status === "processing" || status === "partitioning" || status === "indexing";
-      });
-      
-      return hasProcessingDocs ? 5000 : false; // 5 seconds if processing, else no polling
-    },
+    staleTime: 1000, // Consider data stale after 1 second
   });
+
+  // Separate effect to poll Ragie for non-ready documents
+  useEffect(() => {
+    if (!query.data) return;
+
+    const nonReadyDocs = query.data
+      .filter((item) => item.document && item.document.status !== "ready" && item.document.status !== "failed")
+      .map((item) => item.document!.id);
+
+    if (nonReadyDocs.length === 0) return;
+
+    console.log(`🔄 Starting Ragie polling for ${nonReadyDocs.length} documents`);
+
+    const pollRagie = async () => {
+      try {
+        const result = await checkRagieStatuses(nonReadyDocs);
+        if (result.success) {
+          // Check if any status changed to ready or failed
+          const hasChanges = result.results?.some(
+            (r) => r.status === "ready" || r.status === "failed"
+          );
+          
+          if (hasChanges) {
+            console.log("✅ Document status changed, refreshing list");
+            queryClient.invalidateQueries({ queryKey: documentKeys.list(visaType) });
+          }
+        }
+      } catch (error) {
+        console.error("Error polling Ragie:", error);
+      }
+    };
+
+    // Poll immediately
+    pollRagie();
+
+    // Then poll every 3 seconds
+    const interval = setInterval(pollRagie, 3000);
+
+    return () => {
+      console.log("🛑 Stopping Ragie polling");
+      clearInterval(interval);
+    };
+  }, [query.data, queryClient, visaType]);
+
+  return query;
 }
 
 // Hook to upload a document
@@ -109,7 +147,14 @@ export function useDocumentStatus(documentId: string, enabled: boolean = true) {
       return result;
     },
     enabled,
-    refetchInterval: 5000, // Check every 5 seconds
+    // Poll every 3 seconds until status is "ready" or "failed"
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      if (status === "ready" || status === "failed") {
+        return false; // Stop polling
+      }
+      return 3000; // Keep polling every 3 seconds
+    },
   });
 }
 

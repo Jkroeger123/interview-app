@@ -11,12 +11,18 @@ export interface AgentConfig {
   focusAreaLabels: string[];
   questionTopics: string[]; // High-level topics instead of all questions
   questionBank: string[]; // Full bank for agent's get_relevant_questions tool
-  ragiePartitions: string[]; // Ragie partitions to query (global + user-specific)
+  ragieUserPartition: string; // User's document partition: user-{userId}
+  ragieGlobalPartition: string; // Global reference docs: visa-{type}
   agentPromptContext: string;
   userInfo: {
     name: string;
     userId: string;
   };
+  uploadedDocuments: {
+    friendlyName: string;
+    internalName: string;
+    isRequired: boolean;
+  }[];
 }
 
 /**
@@ -25,7 +31,12 @@ export interface AgentConfig {
  */
 export function buildAgentConfig(
   configuration: InterviewConfiguration,
-  userInfo: { name: string; userId: string }
+  userInfo: { name: string; userId: string },
+  uploadedDocuments: {
+    friendlyName: string;
+    internalName: string;
+    isRequired: boolean;
+  }[] = []
 ): AgentConfig {
   if (!configuration.visaType) {
     throw new Error("Visa type is required to build agent config");
@@ -62,14 +73,12 @@ export function buildAgentConfig(
     "Work Intentions (OPT/CPT)",
   ];
 
-  // Build Ragie partition names
-  // Global partition: visa-{visaType} (for reference documents)
-  // User partition: visa-{visaType}-user-{userId} (for user-uploaded documents)
+  // Build Ragie partition names (simplified structure)
+  // Global partition: visa-{visaType} (for reference documents like visa requirements)
+  // User partition: user-{userId} (for user-uploaded documents, no visa prefix)
   // Note: Ragie requires lowercase only (pattern: ^[a-z0-9_-]+$)
-  const globalPartition = `visa-${configuration.visaType}`;
-  const userPartition = `visa-${configuration.visaType}-user-${userInfo.userId.toLowerCase()}`;
-
-  const ragiePartitions = [globalPartition, userPartition];
+  const ragieGlobalPartition = `visa-${configuration.visaType}`;
+  const ragieUserPartition = `user-${userInfo.userId.toLowerCase()}`;
 
   return {
     visaType: configuration.visaType,
@@ -80,9 +89,11 @@ export function buildAgentConfig(
     focusAreaLabels,
     questionTopics,
     questionBank, // Still included for agent's get_relevant_questions tool
-    ragiePartitions,
+    ragieUserPartition, // User's documents
+    ragieGlobalPartition, // Global reference documents
     agentPromptContext: visaType.agentPromptContext,
     userInfo,
+    uploadedDocuments,
   };
 }
 

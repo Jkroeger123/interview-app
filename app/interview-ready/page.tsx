@@ -14,7 +14,7 @@ import { buildAgentConfig } from "@/lib/agent-config-builder";
 import { CallInterface, type CallInterfaceHandle } from "@/components/voice-call/call-interface";
 import { Toaster } from "@/components/ui/sonner";
 import type { LiveKitConfig } from "@/lib/types/livekit";
-import { useDocumentCounts } from "@/lib/hooks/use-documents";
+import { useDocumentCounts, useDocuments } from "@/lib/hooks/use-documents";
 
 export default function InterviewReadyPage() {
   const router = useRouter();
@@ -23,8 +23,9 @@ export default function InterviewReadyPage() {
   const [interviewStarted, setInterviewStarted] = useState(false);
   const callInterfaceRef = useRef<CallInterfaceHandle>(null);
   
-  // Use React Query hook for document counts
+  // Use React Query hooks for document data
   const documentCount = useDocumentCounts(configuration.visaType || "student");
+  const { data: userDocuments = [] } = useDocuments(configuration.visaType || "student");
 
   // Redirect if no visa type is selected
   useEffect(() => {
@@ -38,15 +39,28 @@ export default function InterviewReadyPage() {
     if (!configuration.visaType || !user) return undefined;
 
     try {
-      return buildAgentConfig(configuration, {
-        name: user.firstName || user.emailAddresses[0]?.emailAddress || "User",
-        userId: user.id,
-      });
+      // Extract uploaded document info for agent context
+      const uploadedDocs = userDocuments
+        .filter((item) => item.document !== null)
+        .map((item) => ({
+          friendlyName: item.documentType.friendlyName,
+          internalName: item.documentType.internalName,
+          isRequired: item.documentType.isRequired,
+        }));
+
+      return buildAgentConfig(
+        configuration,
+        {
+          name: user.firstName || user.emailAddresses[0]?.emailAddress || "User",
+          userId: user.id,
+        },
+        uploadedDocs
+      );
     } catch (error) {
       console.error("Failed to build agent config:", error);
       return undefined;
     }
-  }, [configuration, user]);
+  }, [configuration, user, userDocuments]);
 
   if (!configuration.visaType) {
     return null;
