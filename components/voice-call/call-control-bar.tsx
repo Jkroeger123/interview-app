@@ -1,9 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import { useLocalParticipant, useRoomContext } from "@livekit/components-react";
 import { Mic, MicOff, PhoneOff, Video, VideoOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { endInterviewByRoomName } from "@/server/interview-actions";
+import { toast } from "sonner";
 
 interface CallControlBarProps {
   cameraVisible: boolean;
@@ -16,6 +19,7 @@ export function CallControlBar({
 }: CallControlBarProps) {
   const room = useRoomContext();
   const { isMicrophoneEnabled } = useLocalParticipant();
+  const [isEnding, setIsEnding] = useState(false);
 
   const toggleMicrophone = async () => {
     await room.localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled);
@@ -25,8 +29,55 @@ export function CallControlBar({
     onCameraVisibilityChange(!cameraVisible);
   };
 
-  const handleDisconnect = () => {
-    room.disconnect();
+  const handleDisconnect = async () => {
+    if (isEnding) return;
+    
+    setIsEnding(true);
+    console.log("🔴 User initiated disconnect");
+
+    try {
+      // Step 1: Signal the agent to end the interview gracefully
+      const encoder = new TextEncoder();
+      const data = encoder.encode(
+        JSON.stringify({
+          type: "end_interview",
+          reason: "user_ended",
+        })
+      );
+
+      try {
+        await room.localParticipant.publishData(data, { reliable: true });
+        console.log("✅ Sent end_interview signal to agent");
+        
+        // Give agent a moment to process and leave gracefully
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      } catch (error) {
+        console.error("❌ Failed to signal agent:", error);
+        // Continue with disconnect anyway
+      }
+
+      // Step 2: Update interview status in database
+      if (room.name) {
+        console.log("💾 Updating interview status for room:", room.name);
+        const result = await endInterviewByRoomName(room.name);
+        
+        if (result.success) {
+          console.log("✅ Interview status updated");
+        } else {
+          console.error("❌ Failed to update interview status:", result.error);
+        }
+      }
+
+      // Step 3: Disconnect from room
+      console.log("🔌 Disconnecting from room");
+      room.disconnect();
+      
+      toast.success("Interview ended");
+    } catch (error) {
+      console.error("❌ Error during disconnect:", error);
+      // Force disconnect even if there's an error
+      room.disconnect();
+    }
   };
 
   return (
@@ -65,6 +116,7 @@ export function CallControlBar({
           size="icon"
           className="size-14 rounded-full"
           onClick={handleDisconnect}
+          disabled={isEnding}
           title="End interview"
         >
           <PhoneOff className="size-6" />

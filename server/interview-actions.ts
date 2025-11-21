@@ -239,6 +239,45 @@ export async function updateInterviewStatus(
 }
 
 /**
+ * End an interview by room name (called when user hangs up)
+ */
+export async function endInterviewByRoomName(roomName: string) {
+  try {
+    const interview = await prisma.interview.findUnique({
+      where: { roomName },
+    });
+
+    if (!interview) {
+      console.log("⚠️ Interview not found for room:", roomName);
+      return { success: false, error: "Interview not found" };
+    }
+
+    // Calculate duration if we have a start time
+    const duration = interview.startedAt
+      ? Math.floor((Date.now() - interview.startedAt.getTime()) / 1000)
+      : null;
+
+    const updated = await prisma.interview.update({
+      where: { id: interview.id },
+      data: {
+        status: "completed",
+        endedAt: new Date(),
+        duration,
+      },
+    });
+
+    console.log("✅ Interview ended:", interview.id, "Duration:", duration, "seconds");
+    return { success: true, interview: updated };
+  } catch (error) {
+    console.error("❌ Error ending interview:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to end interview",
+    };
+  }
+}
+
+/**
  * Update interview recording status and URL
  */
 export async function updateInterviewRecording(
