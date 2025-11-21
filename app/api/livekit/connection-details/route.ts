@@ -102,13 +102,14 @@ export async function POST(req: Request) {
     // Build auto-egress configuration (will start recording automatically)
     // Note: TypeScript types don't fully match the runtime API, but this structure is correct per LiveKit docs
     const egressConfig: any = {
-      room: {
-        file: {
-          filepath: `interviews/${interviewId}.mp4`,
-          output: {
-            case: "s3",
-            value: {
-              accessKey: AWS_ACCESS_KEY_ID || "",
+      room_composite: {
+        layout: "speaker",
+        output: {
+          file: {
+            filepath: `interviews/${interviewId}.mp4`,
+            type: "FILE_TYPE_MP4",
+            s3: {
+              access_key: AWS_ACCESS_KEY_ID || "",
               secret: AWS_SECRET_ACCESS_KEY || "",
               bucket: AWS_S3_BUCKET || "",
               region: AWS_S3_REGION || "",
@@ -123,18 +124,19 @@ export async function POST(req: Request) {
       "🎬 API: Egress config:",
       JSON.stringify(
         {
-          room: {
-            file: {
-              filepath: egressConfig.room.file.filepath,
-              output: {
-                case: "s3",
-                value: {
-                  bucket: egressConfig.room.file.output.value.bucket,
-                  region: egressConfig.room.file.output.value.region,
-                  accessKey: egressConfig.room.file.output.value.accessKey
+          room_composite: {
+            layout: egressConfig.room_composite.layout,
+            output: {
+              file: {
+                filepath: egressConfig.room_composite.output.file.filepath,
+                type: egressConfig.room_composite.output.file.type,
+                s3: {
+                  bucket: egressConfig.room_composite.output.file.s3.bucket,
+                  region: egressConfig.room_composite.output.file.s3.region,
+                  access_key: egressConfig.room_composite.output.file.s3.access_key
                     ? "***"
                     : "MISSING",
-                  secret: egressConfig.room.file.output.value.secret
+                  secret: egressConfig.room_composite.output.file.s3.secret
                     ? "***"
                     : "MISSING",
                 },
