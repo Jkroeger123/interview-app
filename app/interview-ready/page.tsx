@@ -39,28 +39,18 @@ export default function InterviewReadyPage() {
     if (!configuration.visaType || !user) return undefined;
 
     try {
-      // Extract uploaded document info for agent context
-      const uploadedDocs = userDocuments
-        .filter((item) => item.document !== null)
-        .map((item) => ({
-          friendlyName: item.documentType.friendlyName,
-          internalName: item.documentType.internalName,
-          isRequired: item.documentType.isRequired,
-        }));
-
       return buildAgentConfig(
         configuration,
         {
           name: user.firstName || user.emailAddresses[0]?.emailAddress || "User",
           userId: user.id,
-        },
-        uploadedDocs
+        }
       );
     } catch (error) {
       console.error("Failed to build agent config:", error);
       return undefined;
     }
-  }, [configuration, user, userDocuments]);
+  }, [configuration, user]);
 
   if (!configuration.visaType) {
     return null;

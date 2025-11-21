@@ -11,6 +11,7 @@ export interface ConnectionDetails {
   roomName: string;
   participantName: string;
   participantToken: string;
+  interviewId?: string; // Interview tracking ID
 }
 
 export interface AgentCapabilities {

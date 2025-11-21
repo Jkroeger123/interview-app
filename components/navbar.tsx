@@ -1,6 +1,6 @@
 import { UserButton } from "@clerk/nextjs";
 import Link from "next/link";
-import { FileText } from "lucide-react";
+import { FileText, History } from "lucide-react";
 
 export function Navbar() {
   return (
@@ -17,6 +17,13 @@ export function Navbar() {
           >
             <FileText className="w-4 h-4" />
             My Documents
+          </Link>
+          <Link
+            href="/reports"
+            className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <History className="w-4 h-4" />
+            Interview History
           </Link>
           <UserButton />
         </div>

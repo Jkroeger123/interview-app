@@ -1,0 +1,266 @@
+"use server";
+
+import { prisma } from "@/lib/prisma";
+import { currentUser } from "@clerk/nextjs/server";
+import { EgressClient, EncodedFileOutput } from "livekit-server-sdk";
+
+const LIVEKIT_URL = process.env.LIVEKIT_URL;
+const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY;
+const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET;
+
+const AWS_S3_BUCKET = process.env.AWS_S3_BUCKET;
+const AWS_S3_REGION = process.env.AWS_S3_REGION;
+const AWS_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID;
+const AWS_SECRET_ACCESS_KEY = process.env.AWS_SECRET_ACCESS_KEY;
+
+/**
+ * Create a new interview record when a call starts
+ */
+export async function createInterview(
+  userId: string,
+  clerkId: string,
+  roomName: string,
+  visaType: string
+) {
+  try {
+    const interview = await prisma.interview.create({
+      data: {
+        userId,
+        clerkId,
+        roomName,
+        visaType,
+        status: "in_progress",
+        recordingStatus: "pending",
+        transcriptStatus: "pending",
+      },
+    });
+
+    console.log("✅ Created interview record:", interview.id);
+    return { success: true, interview };
+  } catch (error) {
+    console.error("❌ Error creating interview:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to create interview",
+    };
+  }
+}
+
+/**
+ * Start LiveKit Egress recording for a room
+ */
+export async function startInterviewRecording(
+  interviewId: string,
+  roomName: string
+) {
+  try {
+    if (!LIVEKIT_URL || !LIVEKIT_API_KEY || !LIVEKIT_API_SECRET) {
+      throw new Error("LiveKit credentials not configured");
+    }
+
+    if (!AWS_S3_BUCKET || !AWS_S3_REGION || !AWS_ACCESS_KEY_ID || !AWS_SECRET_ACCESS_KEY) {
+      throw new Error("AWS S3 credentials not configured");
+    }
+
+    const egressClient = new EgressClient(
+      LIVEKIT_URL,
+      LIVEKIT_API_KEY,
+      LIVEKIT_API_SECRET
+    );
+
+    // Start room composite egress with S3 upload
+    const egressInfo = await egressClient.startRoomCompositeEgress(roomName, {
+      file: new EncodedFileOutput({
+        filepath: `interviews/${interviewId}.mp4`,
+        output: {
+          case: "s3",
+          value: {
+            accessKey: AWS_ACCESS_KEY_ID,
+            secret: AWS_SECRET_ACCESS_KEY,
+            bucket: AWS_S3_BUCKET,
+            region: AWS_S3_REGION,
+          },
+        },
+      }),
+    });
+
+    console.log("✅ Started egress:", egressInfo.egressId);
+
+    // Update interview record with egress ID
+    await prisma.interview.update({
+      where: { id: interviewId },
+      data: {
+        egressId: egressInfo.egressId,
+        recordingStatus: "recording",
+      },
+    });
+
+    return { success: true, egressId: egressInfo.egressId };
+  } catch (error) {
+    console.error("❌ Error starting recording:", error);
+    
+    // Update interview status to failed
+    await prisma.interview.update({
+      where: { id: interviewId },
+      data: {
+        recordingStatus: "failed",
+      },
+    }).catch(console.error);
+
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to start recording",
+    };
+  }
+}
+
+/**
+ * Get interview by ID with all related data
+ */
+export async function getInterviewById(interviewId: string) {
+  try {
+    const user = await currentUser();
+    if (!user) {
+      throw new Error("Unauthorized");
+    }
+
+    const interview = await prisma.interview.findUnique({
+      where: { id: interviewId },
+      include: {
+        user: true,
+        report: true,
+        transcriptSegments: {
+          orderBy: { startTime: "asc" },
+        },
+      },
+    });
+
+    if (!interview) {
+      throw new Error("Interview not found");
+    }
+
+    // Check ownership
+    if (interview.clerkId !== user.id) {
+      throw new Error("Access denied");
+    }
+
+    return { success: true, interview };
+  } catch (error) {
+    console.error("❌ Error fetching interview:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to fetch interview",
+    };
+  }
+}
+
+/**
+ * Get all interviews for the current user
+ */
+export async function getUserInterviews() {
+  try {
+    const user = await currentUser();
+    if (!user) {
+      throw new Error("Unauthorized");
+    }
+
+    const interviews = await prisma.interview.findMany({
+      where: { clerkId: user.id },
+      include: {
+        report: {
+          select: {
+            overallScore: true,
+            recommendation: true,
+          },
+        },
+      },
+      orderBy: { startedAt: "desc" },
+    });
+
+    return { success: true, interviews };
+  } catch (error) {
+    console.error("❌ Error fetching interviews:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to fetch interviews",
+    };
+  }
+}
+
+/**
+ * Update interview status when it ends
+ */
+export async function updateInterviewStatus(
+  interviewId: string,
+  status: "in_progress" | "completed" | "failed",
+  endedAt?: Date,
+  duration?: number
+) {
+  try {
+    const interview = await prisma.interview.update({
+      where: { id: interviewId },
+      data: {
+        status,
+        endedAt,
+        duration,
+      },
+    });
+
+    console.log("✅ Updated interview status:", interviewId, status);
+    return { success: true, interview };
+  } catch (error) {
+    console.error("❌ Error updating interview:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to update interview",
+    };
+  }
+}
+
+/**
+ * Update interview recording status and URL
+ */
+export async function updateInterviewRecording(
+  interviewId: string,
+  recordingStatus: "pending" | "recording" | "processing" | "ready" | "failed",
+  recordingUrl?: string
+) {
+  try {
+    const interview = await prisma.interview.update({
+      where: { id: interviewId },
+      data: {
+        recordingStatus,
+        recordingUrl,
+      },
+    });
+
+    console.log("✅ Updated recording status:", interviewId, recordingStatus);
+    return { success: true, interview };
+  } catch (error) {
+    console.error("❌ Error updating recording:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to update recording",
+    };
+  }
+}
+
+/**
+ * Get interview by room name
+ */
+export async function getInterviewByRoomName(roomName: string) {
+  try {
+    const interview = await prisma.interview.findUnique({
+      where: { roomName },
+    });
+
+    return { success: true, interview };
+  } catch (error) {
+    console.error("❌ Error fetching interview by room:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to fetch interview",
+    };
+  }
+}
+

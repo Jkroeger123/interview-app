@@ -8,6 +8,11 @@ import {
 } from "livekit-server-sdk";
 import { RoomConfiguration } from "@livekit/protocol";
 import type { ConnectionDetails } from "@/lib/types/livekit";
+import {
+  createInterview,
+  startInterviewRecording,
+} from "@/server/interview-actions";
+import { prisma } from "@/lib/prisma";
 
 const API_KEY = process.env.LIVEKIT_API_KEY;
 const API_SECRET = process.env.LIVEKIT_API_SECRET;
@@ -49,13 +54,15 @@ export async function POST(req: Request) {
     const participantName =
       user.firstName || user.emailAddresses[0]?.emailAddress || "User";
     const participantIdentity = user.id;
-    
+
     // Create room service client
     const roomService = new RoomServiceClient(LIVEKIT_URL, API_KEY, API_SECRET);
-    
+
     // Always create a fresh room for each interview
     // Use session ID from client for stable room naming (useful for debugging)
-    const roomName = `interview_${participantIdentity}_${sessionId || Date.now()}`;
+    const roomName = `interview_${participantIdentity}_${
+      sessionId || Date.now()
+    }`;
     console.log("🟢 API: Creating fresh room:", roomName);
 
     if (agentConfig) {
@@ -81,7 +88,10 @@ export async function POST(req: Request) {
           await new Promise((resolve) => setTimeout(resolve, 200));
           console.log("🟢 API: Metadata updated");
         } catch (updateError: any) {
-          console.error("❌ API: Error setting room metadata:", updateError.message);
+          console.error(
+            "❌ API: Error setting room metadata:",
+            updateError.message
+          );
         }
       }
     } else {
@@ -99,23 +109,72 @@ export async function POST(req: Request) {
       }
     }
 
+    // Get user's internal ID from database
+    let userId: string;
+    try {
+      const dbUser = await prisma.user.findUnique({
+        where: { clerkId: participantIdentity },
+        select: { id: true },
+      });
+      if (!dbUser) {
+        throw new Error("User not found in database");
+      }
+      userId = dbUser.id;
+    } catch (error) {
+      console.error("❌ API: Error fetching user:", error);
+      return new NextResponse("User not found", { status: 404 });
+    }
+
+    // Create interview record in database
+    const visaType = agentConfig?.visaType || "student"; // Default to student if not provided
+    const interviewResult = await createInterview(
+      userId,
+      participantIdentity,
+      roomName,
+      visaType
+    );
+
+    if (!interviewResult.success || !interviewResult.interview) {
+      console.error("❌ API: Failed to create interview record");
+      return new NextResponse("Failed to create interview", { status: 500 });
+    }
+
+    const interviewId = interviewResult.interview.id;
+    console.log("✅ API: Created interview record:", interviewId);
+
+    // Start automatic recording
+    // Note: We don't wait for this to complete to avoid blocking the connection
+    startInterviewRecording(interviewId, roomName)
+      .then((result) => {
+        if (result.success) {
+          console.log("✅ API: Recording started successfully");
+        } else {
+          console.error("❌ API: Failed to start recording:", result.error);
+        }
+      })
+      .catch((error) => {
+        console.error("❌ API: Error starting recording:", error);
+      });
+
     const participantToken = await createParticipantToken(
       { identity: participantIdentity, name: participantName },
       roomName,
       agentName
     );
 
-    // Return connection details
+    // Return connection details with interview ID
     const data: ConnectionDetails = {
       serverUrl: LIVEKIT_URL,
       roomName,
       participantToken: participantToken,
       participantName,
+      interviewId, // Include interview ID for client tracking
     };
 
     console.log("🟢 API: Sending response:");
     console.log("🟢 API: Server URL:", LIVEKIT_URL);
     console.log("🟢 API: Room name:", roomName);
+    console.log("🟢 API: Interview ID:", interviewId);
 
     const headers = new Headers({
       "Cache-Control": "no-store",

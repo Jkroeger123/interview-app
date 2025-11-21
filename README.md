@@ -79,6 +79,18 @@ CLERK_WEBHOOK_SECRET=whsec_...
 LIVEKIT_URL=wss://your-project.livekit.cloud
 LIVEKIT_API_KEY=your_api_key
 LIVEKIT_API_SECRET=your_api_secret
+
+# Ragie - RAG for document retrieval
+RAGIE_API_KEY=your_ragie_api_key
+
+# AWS S3 - For interview recordings
+AWS_S3_BUCKET=your-interview-recordings-bucket
+AWS_S3_REGION=us-east-1
+AWS_ACCESS_KEY_ID=your_aws_access_key
+AWS_SECRET_ACCESS_KEY=your_aws_secret_key
+
+# OpenAI - For AI report generation
+OPENAI_API_KEY=sk-your_openai_api_key
 ```
 
 ### 3. Set Up Clerk

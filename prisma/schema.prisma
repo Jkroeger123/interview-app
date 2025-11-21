@@ -24,7 +24,8 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  documents UserDocument[]
+  documents  UserDocument[]
+  interviews Interview[]
 
   @@index([clerkId])
   @@index([email])
@@ -32,14 +33,14 @@ model User {
 
 // User documents uploaded to Ragie
 model DocumentType {
-  id            String   @id @default(uuid())
-  visaType      String   // e.g., "student", "tourist", "work"
-  internalName  String   // e.g., "ds_160", "i20_form"
-  friendlyName  String   // e.g., "DS-160 Confirmation Page", "I-20 Form"
-  description   String?  // Optional description or instructions
-  isRequired    Boolean  @default(false) // Whether this document is required
-  sortOrder     Int      @default(0) // For ordering in UI
-  createdAt     DateTime @default(now())
+  id           String   @id @default(uuid())
+  visaType     String // e.g., "student", "tourist", "work"
+  internalName String // e.g., "ds_160", "i20_form"
+  friendlyName String // e.g., "DS-160 Confirmation Page", "I-20 Form"
+  description  String? // Optional description or instructions
+  isRequired   Boolean  @default(false) // Whether this document is required
+  sortOrder    Int      @default(0) // For ordering in UI
+  createdAt    DateTime @default(now())
 
   documents UserDocument[]
 
@@ -50,12 +51,12 @@ model DocumentType {
 model UserDocument {
   id             String   @id @default(uuid())
   userId         String
-  clerkId        String   // Denormalized for easier querying
-  documentTypeId String   // Reference to DocumentType
+  clerkId        String // Denormalized for easier querying
+  documentTypeId String // Reference to DocumentType
   filename       String
   ragieFileId    String   @unique // Ragie's file ID
-  fileSize       Int      // Size in bytes
-  mimeType       String   // e.g., "application/pdf"
+  fileSize       Int // Size in bytes
+  mimeType       String // e.g., "application/pdf"
   status         String   @default("processing") // "processing", "ready", "failed"
   uploadedAt     DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -69,4 +70,72 @@ model UserDocument {
   @@index([clerkId])
   @@index([ragieFileId])
   @@index([documentTypeId])
+}
+
+// Interview session tracking
+model Interview {
+  id        String    @id @default(uuid())
+  userId    String
+  clerkId   String
+  roomName  String    @unique
+  visaType  String
+  status    String    @default("in_progress") // "in_progress", "completed", "failed"
+  startedAt DateTime  @default(now())
+  endedAt   DateTime?
+  duration  Int? // seconds
+
+  // Recording details
+  egressId        String? // LiveKit egress ID
+  recordingUrl    String? // S3 URL to MP4 file
+  recordingStatus String  @default("pending") // "pending", "recording", "processing", "ready", "failed"
+
+  // Transcription
+  transcriptStatus String @default("pending") // "pending", "processing", "ready", "failed"
+
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  report             InterviewReport?
+  transcriptSegments TranscriptSegment[]
+
+  @@index([userId])
+  @@index([clerkId])
+  @@index([roomName])
+}
+
+// Transcript segments from LiveKit transcription
+model TranscriptSegment {
+  id          String   @id @default(uuid())
+  interviewId String
+  speaker     String // "agent" or "user"
+  text        String   @db.Text
+  startTime   Float // seconds from interview start
+  endTime     Float // seconds from interview start
+  createdAt   DateTime @default(now())
+
+  interview Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+
+  @@index([interviewId])
+}
+
+// AI-generated interview analysis report
+model InterviewReport {
+  id          String @id @default(uuid())
+  interviewId String @unique
+
+  // Overall assessment
+  overallScore   Int // 0-100
+  recommendation String // "approve", "deny", "further_review"
+
+  // Detailed analysis (JSON)
+  strengths           String @db.Text // JSON array
+  weaknesses          String @db.Text // JSON array
+  redFlags            String @db.Text // JSON array
+  timestampedComments String @db.Text // JSON array with {timestamp, comment, severity}
+
+  // Full AI analysis
+  summary     String   @db.Text
+  generatedAt DateTime @default(now())
+
+  interview Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+
+  @@index([interviewId])
 }
