@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { InterviewProvider } from "@/lib/contexts/interview-context";
 import { QueryProvider } from "@/lib/providers/query-provider";
+import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -36,6 +37,7 @@ export default function RootLayout({
               {children}
             </InterviewProvider>
           </QueryProvider>
+          <Toaster />
         </body>
       </html>
     </ClerkProvider>

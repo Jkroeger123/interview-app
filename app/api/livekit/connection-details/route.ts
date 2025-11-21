@@ -133,7 +133,8 @@ export async function POST(req: Request) {
                 s3: {
                   bucket: egressConfig.room_composite.output.file.s3.bucket,
                   region: egressConfig.room_composite.output.file.s3.region,
-                  access_key: egressConfig.room_composite.output.file.s3.access_key
+                  access_key: egressConfig.room_composite.output.file.s3
+                    .access_key
                     ? "***"
                     : "MISSING",
                   secret: egressConfig.room_composite.output.file.s3.secret

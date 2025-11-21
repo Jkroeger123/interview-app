@@ -285,3 +285,43 @@ export async function getInterviewByRoomName(roomName: string) {
   }
 }
 
+/**
+ * Delete an interview and all related data
+ */
+export async function deleteInterview(interviewId: string) {
+  try {
+    const user = await currentUser();
+    if (!user) {
+      throw new Error("Unauthorized");
+    }
+
+    // Verify ownership before deleting
+    const interview = await prisma.interview.findUnique({
+      where: { id: interviewId },
+      select: { clerkId: true },
+    });
+
+    if (!interview) {
+      throw new Error("Interview not found");
+    }
+
+    if (interview.clerkId !== user.id) {
+      throw new Error("Access denied");
+    }
+
+    // Delete interview (cascade will handle related records: transcript, report)
+    await prisma.interview.delete({
+      where: { id: interviewId },
+    });
+
+    console.log("✅ Deleted interview:", interviewId);
+    return { success: true };
+  } catch (error) {
+    console.error("❌ Error deleting interview:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to delete interview",
+    };
+  }
+}
+
