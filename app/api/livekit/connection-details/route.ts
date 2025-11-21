@@ -118,6 +118,20 @@ export async function POST(req: Request) {
     };
 
     console.log("🎬 API: Room will be created with auto-egress enabled");
+    console.log("🎬 API: Egress config:", JSON.stringify({
+      ...egressConfig,
+      room: {
+        fileOutputs: [{
+          filepath: egressConfig.room.fileOutputs[0].filepath,
+          s3: {
+            bucket: egressConfig.room.fileOutputs[0].s3.bucket,
+            region: egressConfig.room.fileOutputs[0].s3.region,
+            accessKey: egressConfig.room.fileOutputs[0].s3.accessKey ? "***" : "MISSING",
+            secret: egressConfig.room.fileOutputs[0].s3.secret ? "***" : "MISSING",
+          }
+        }]
+      }
+    }, null, 2));
 
     if (agentConfig) {
       try {
@@ -135,18 +149,23 @@ export async function POST(req: Request) {
         await new Promise((resolve) => setTimeout(resolve, 200));
         console.log("✅ API: Room created with metadata and auto-egress");
       } catch (error: any) {
-        // Room might already exist (unlikely but handle it), try to update metadata
-        console.log("🟡 API: Room exists, updating metadata");
+        console.error("❌ API: Room creation failed:", error.message);
+        console.error("❌ API: Full error:", JSON.stringify(error, null, 2));
+        
+        // Try creating without egress as fallback
+        console.log("🔄 API: Retrying without egress config...");
         try {
           const metadataString = JSON.stringify(agentConfig);
-          await roomService.updateRoomMetadata(roomName, metadataString);
-          await new Promise((resolve) => setTimeout(resolve, 200));
-          console.log("🟢 API: Metadata updated");
-        } catch (updateError: any) {
-          console.error(
-            "❌ API: Error setting room metadata:",
-            updateError.message
-          );
+          await roomService.createRoom({
+            name: roomName,
+            emptyTimeout: 5 * 60,
+            maxParticipants: 10,
+            metadata: metadataString,
+          });
+          console.log("✅ API: Room created without egress (fallback)");
+        } catch (fallbackError: any) {
+          console.error("❌ API: Fallback room creation failed:", fallbackError.message);
+          return new NextResponse("Failed to create room", { status: 500 });
         }
       }
     } else {
@@ -160,8 +179,22 @@ export async function POST(req: Request) {
         });
         console.log("✅ API: Room created with auto-egress (no metadata)");
       } catch (error: any) {
-        // Room already exists, that's fine
-        console.log("🟡 API: Room already exists:", roomName);
+        console.error("❌ API: Room creation failed:", error.message);
+        console.error("❌ API: Full error:", JSON.stringify(error, null, 2));
+        
+        // Try creating without egress as fallback
+        console.log("🔄 API: Retrying without egress config...");
+        try {
+          await roomService.createRoom({
+            name: roomName,
+            emptyTimeout: 5 * 60,
+            maxParticipants: 10,
+          });
+          console.log("✅ API: Room created without egress (fallback)");
+        } catch (fallbackError: any) {
+          console.error("❌ API: Fallback room creation failed:", fallbackError.message);
+          return new NextResponse("Failed to create room", { status: 500 });
+        }
       }
     }
 
