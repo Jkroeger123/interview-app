@@ -5,6 +5,8 @@ import {
   type AccessTokenOptions,
   type VideoGrant,
   RoomServiceClient,
+  EgressClient,
+  EncodedFileOutput,
 } from "livekit-server-sdk";
 import { RoomConfiguration } from "@livekit/protocol";
 import type { ConnectionDetails } from "@/lib/types/livekit";
@@ -99,57 +101,6 @@ export async function POST(req: Request) {
     const interviewId = interviewResult.interview.id;
     console.log("✅ API: Created interview record:", interviewId);
 
-    // Build auto-egress configuration (will start recording automatically)
-    // Note: TypeScript types don't fully match the runtime API, but this structure is correct per LiveKit docs
-    const egressConfig: any = {
-      room_composite: {
-        layout: "speaker",
-        output: {
-          file: {
-            filepath: `interviews/${interviewId}.mp4`,
-            type: "FILE_TYPE_MP4",
-            s3: {
-              access_key: AWS_ACCESS_KEY_ID || "",
-              secret: AWS_SECRET_ACCESS_KEY || "",
-              bucket: AWS_S3_BUCKET || "",
-              region: AWS_S3_REGION || "",
-            },
-          },
-        },
-      },
-    };
-
-    console.log("🎬 API: Room will be created with auto-egress enabled");
-    console.log(
-      "🎬 API: Egress config:",
-      JSON.stringify(
-        {
-          room_composite: {
-            layout: egressConfig.room_composite.layout,
-            output: {
-              file: {
-                filepath: egressConfig.room_composite.output.file.filepath,
-                type: egressConfig.room_composite.output.file.type,
-                s3: {
-                  bucket: egressConfig.room_composite.output.file.s3.bucket,
-                  region: egressConfig.room_composite.output.file.s3.region,
-                  access_key: egressConfig.room_composite.output.file.s3
-                    .access_key
-                    ? "***"
-                    : "MISSING",
-                  secret: egressConfig.room_composite.output.file.s3.secret
-                    ? "***"
-                    : "MISSING",
-                },
-              },
-            },
-          },
-        },
-        null,
-        2
-      )
-    );
-
     if (agentConfig) {
       try {
         const metadataString = JSON.stringify(agentConfig);
@@ -159,66 +110,64 @@ export async function POST(req: Request) {
           emptyTimeout: 5 * 60, // 5 minutes
           maxParticipants: 10,
           metadata: metadataString,
-          egress: egressConfig, // Auto-start recording when room is created
         });
 
         // Small delay to ensure metadata propagates before agent joins
         await new Promise((resolve) => setTimeout(resolve, 200));
-        console.log("✅ API: Room created with metadata and auto-egress");
+        console.log("✅ API: Room created with metadata");
       } catch (error: any) {
         console.error("❌ API: Room creation failed:", error.message);
-        console.error("❌ API: Full error:", JSON.stringify(error, null, 2));
-
-        // Try creating without egress as fallback
-        console.log("🔄 API: Retrying without egress config...");
-        try {
-          const metadataString = JSON.stringify(agentConfig);
-          await roomService.createRoom({
-            name: roomName,
-            emptyTimeout: 5 * 60,
-            maxParticipants: 10,
-            metadata: metadataString,
-          });
-          console.log("✅ API: Room created without egress (fallback)");
-        } catch (fallbackError: any) {
-          console.error(
-            "❌ API: Fallback room creation failed:",
-            fallbackError.message
-          );
-          return new NextResponse("Failed to create room", { status: 500 });
-        }
+        return new NextResponse("Failed to create room", { status: 500 });
       }
     } else {
-      // Create room without metadata but with auto-egress
+      // Create room without metadata
       try {
         await roomService.createRoom({
           name: roomName,
           emptyTimeout: 5 * 60,
           maxParticipants: 10,
-          egress: egressConfig, // Auto-start recording when room is created
         });
-        console.log("✅ API: Room created with auto-egress (no metadata)");
+        console.log("✅ API: Room created (no metadata)");
       } catch (error: any) {
         console.error("❌ API: Room creation failed:", error.message);
-        console.error("❌ API: Full error:", JSON.stringify(error, null, 2));
-
-        // Try creating without egress as fallback
-        console.log("🔄 API: Retrying without egress config...");
-        try {
-          await roomService.createRoom({
-            name: roomName,
-            emptyTimeout: 5 * 60,
-            maxParticipants: 10,
-          });
-          console.log("✅ API: Room created without egress (fallback)");
-        } catch (fallbackError: any) {
-          console.error(
-            "❌ API: Fallback room creation failed:",
-            fallbackError.message
-          );
-          return new NextResponse("Failed to create room", { status: 500 });
-        }
+        return new NextResponse("Failed to create room", { status: 500 });
       }
+    }
+
+    // Start recording after room is created
+    console.log("🎬 API: Starting egress recording...");
+    try {
+      const egressClient = new EgressClient(LIVEKIT_URL, API_KEY, API_SECRET);
+      
+      const egressInfo = await egressClient.startRoomCompositeEgress(roomName, {
+        file: new EncodedFileOutput({
+          filepath: `interviews/${interviewId}.mp4`,
+          output: {
+            case: "s3",
+            value: {
+              accessKey: AWS_ACCESS_KEY_ID,
+              secret: AWS_SECRET_ACCESS_KEY,
+              bucket: AWS_S3_BUCKET,
+              region: AWS_S3_REGION,
+            },
+          },
+        }),
+      });
+
+      console.log("✅ API: Egress started:", egressInfo.egressId);
+
+      // Update interview record with egress ID
+      await prisma.interview.update({
+        where: { id: interviewId },
+        data: {
+          egressId: egressInfo.egressId,
+          recordingStatus: "recording",
+        },
+      });
+    } catch (error: any) {
+      console.error("❌ API: Failed to start egress:", error.message);
+      // Don't fail the entire request - room is created, user can still join
+      // Recording just won't be available
     }
 
     const participantToken = await createParticipantToken(
