@@ -54,19 +54,40 @@ export async function startInterviewRecording(
   roomName: string
 ) {
   try {
+    console.log("🎬 Starting recording for interview:", interviewId, "room:", roomName);
+    
     if (!LIVEKIT_URL || !LIVEKIT_API_KEY || !LIVEKIT_API_SECRET) {
-      throw new Error("LiveKit credentials not configured");
+      const error = "LiveKit credentials not configured";
+      console.error("❌", error);
+      throw new Error(error);
     }
 
     if (!AWS_S3_BUCKET || !AWS_S3_REGION || !AWS_ACCESS_KEY_ID || !AWS_SECRET_ACCESS_KEY) {
-      throw new Error("AWS S3 credentials not configured");
+      const error = "AWS S3 credentials not configured";
+      console.error("❌", error, {
+        hasBucket: !!AWS_S3_BUCKET,
+        hasRegion: !!AWS_S3_REGION,
+        hasAccessKey: !!AWS_ACCESS_KEY_ID,
+        hasSecretKey: !!AWS_SECRET_ACCESS_KEY,
+      });
+      throw new Error(error);
     }
 
+    console.log("✓ All credentials present, creating egress client...");
+
+    console.log("✓ Creating EgressClient with URL:", LIVEKIT_URL);
     const egressClient = new EgressClient(
       LIVEKIT_URL,
       LIVEKIT_API_KEY,
       LIVEKIT_API_SECRET
     );
+
+    console.log("✓ Starting room composite egress for room:", roomName);
+    console.log("✓ S3 config:", {
+      bucket: AWS_S3_BUCKET,
+      region: AWS_S3_REGION,
+      filepath: `interviews/${interviewId}.mp4`,
+    });
 
     // Start room composite egress with S3 upload
     const egressInfo = await egressClient.startRoomCompositeEgress(roomName, {

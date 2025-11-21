@@ -8,15 +8,16 @@ import {
 } from "livekit-server-sdk";
 import { RoomConfiguration } from "@livekit/protocol";
 import type { ConnectionDetails } from "@/lib/types/livekit";
-import {
-  createInterview,
-  startInterviewRecording,
-} from "@/server/interview-actions";
+import { createInterview } from "@/server/interview-actions";
 import { prisma } from "@/lib/prisma";
 
 const API_KEY = process.env.LIVEKIT_API_KEY;
 const API_SECRET = process.env.LIVEKIT_API_SECRET;
 const LIVEKIT_URL = process.env.LIVEKIT_URL;
+const AWS_S3_BUCKET = process.env.AWS_S3_BUCKET;
+const AWS_S3_REGION = process.env.AWS_S3_REGION;
+const AWS_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID;
+const AWS_SECRET_ACCESS_KEY = process.env.AWS_SECRET_ACCESS_KEY;
 
 // Don't cache the results
 export const revalidate = 0;
@@ -58,12 +59,65 @@ export async function POST(req: Request) {
     // Create room service client
     const roomService = new RoomServiceClient(LIVEKIT_URL, API_KEY, API_SECRET);
 
+    // Get user's internal ID from database FIRST (needed for interview creation)
+    let userId: string;
+    try {
+      const dbUser = await prisma.user.findUnique({
+        where: { clerkId: participantIdentity },
+        select: { id: true },
+      });
+      if (!dbUser) {
+        throw new Error("User not found in database");
+      }
+      userId = dbUser.id;
+    } catch (error) {
+      console.error("❌ API: Error fetching user:", error);
+      return new NextResponse("User not found", { status: 404 });
+    }
+
     // Always create a fresh room for each interview
     // Use session ID from client for stable room naming (useful for debugging)
     const roomName = `interview_${participantIdentity}_${
       sessionId || Date.now()
     }`;
     console.log("🟢 API: Creating fresh room:", roomName);
+
+    // Create interview record BEFORE room (so we have the ID for auto-egress)
+    const visaType = agentConfig?.visaType || "student";
+    const interviewResult = await createInterview(
+      userId,
+      participantIdentity,
+      roomName,
+      visaType
+    );
+
+    if (!interviewResult.success || !interviewResult.interview) {
+      console.error("❌ API: Failed to create interview record");
+      return new NextResponse("Failed to create interview", { status: 500 });
+    }
+
+    const interviewId = interviewResult.interview.id;
+    console.log("✅ API: Created interview record:", interviewId);
+
+    // Build auto-egress configuration (will start recording automatically)
+    // Note: TypeScript types don't fully match the runtime API, but this structure is correct per LiveKit docs
+    const egressConfig: any = {
+      room: {
+        fileOutputs: [
+          {
+            filepath: `interviews/${interviewId}.mp4`,
+            s3: {
+              accessKey: AWS_ACCESS_KEY_ID || "",
+              secret: AWS_SECRET_ACCESS_KEY || "",
+              bucket: AWS_S3_BUCKET || "",
+              region: AWS_S3_REGION || "",
+            },
+          },
+        ],
+      },
+    };
+
+    console.log("🎬 API: Room will be created with auto-egress enabled");
 
     if (agentConfig) {
       try {
@@ -74,11 +128,12 @@ export async function POST(req: Request) {
           emptyTimeout: 5 * 60, // 5 minutes
           maxParticipants: 10,
           metadata: metadataString,
+          egress: egressConfig, // Auto-start recording when room is created
         });
 
         // Small delay to ensure metadata propagates before agent joins
         await new Promise((resolve) => setTimeout(resolve, 200));
-        console.log("🟢 API: Room created with metadata");
+        console.log("✅ API: Room created with metadata and auto-egress");
       } catch (error: any) {
         // Room might already exist (unlikely but handle it), try to update metadata
         console.log("🟡 API: Room exists, updating metadata");
@@ -95,66 +150,20 @@ export async function POST(req: Request) {
         }
       }
     } else {
-      // Create room without metadata
+      // Create room without metadata but with auto-egress
       try {
         await roomService.createRoom({
           name: roomName,
           emptyTimeout: 5 * 60,
           maxParticipants: 10,
+          egress: egressConfig, // Auto-start recording when room is created
         });
-        console.log("🟢 API: Room created (no metadata)");
+        console.log("✅ API: Room created with auto-egress (no metadata)");
       } catch (error: any) {
         // Room already exists, that's fine
         console.log("🟡 API: Room already exists:", roomName);
       }
     }
-
-    // Get user's internal ID from database
-    let userId: string;
-    try {
-      const dbUser = await prisma.user.findUnique({
-        where: { clerkId: participantIdentity },
-        select: { id: true },
-      });
-      if (!dbUser) {
-        throw new Error("User not found in database");
-      }
-      userId = dbUser.id;
-    } catch (error) {
-      console.error("❌ API: Error fetching user:", error);
-      return new NextResponse("User not found", { status: 404 });
-    }
-
-    // Create interview record in database
-    const visaType = agentConfig?.visaType || "student"; // Default to student if not provided
-    const interviewResult = await createInterview(
-      userId,
-      participantIdentity,
-      roomName,
-      visaType
-    );
-
-    if (!interviewResult.success || !interviewResult.interview) {
-      console.error("❌ API: Failed to create interview record");
-      return new NextResponse("Failed to create interview", { status: 500 });
-    }
-
-    const interviewId = interviewResult.interview.id;
-    console.log("✅ API: Created interview record:", interviewId);
-
-    // Start automatic recording
-    // Note: We don't wait for this to complete to avoid blocking the connection
-    startInterviewRecording(interviewId, roomName)
-      .then((result) => {
-        if (result.success) {
-          console.log("✅ API: Recording started successfully");
-        } else {
-          console.error("❌ API: Failed to start recording:", result.error);
-        }
-      })
-      .catch((error) => {
-        console.error("❌ API: Error starting recording:", error);
-      });
 
     const participantToken = await createParticipantToken(
       { identity: participantIdentity, name: participantName },
