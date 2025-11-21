@@ -103,35 +103,49 @@ export async function POST(req: Request) {
     // Note: TypeScript types don't fully match the runtime API, but this structure is correct per LiveKit docs
     const egressConfig: any = {
       room: {
-        fileOutputs: [
-          {
-            filepath: `interviews/${interviewId}.mp4`,
-            s3: {
+        file: {
+          filepath: `interviews/${interviewId}.mp4`,
+          output: {
+            case: "s3",
+            value: {
               accessKey: AWS_ACCESS_KEY_ID || "",
               secret: AWS_SECRET_ACCESS_KEY || "",
               bucket: AWS_S3_BUCKET || "",
               region: AWS_S3_REGION || "",
             },
           },
-        ],
+        },
       },
     };
 
     console.log("🎬 API: Room will be created with auto-egress enabled");
-    console.log("🎬 API: Egress config:", JSON.stringify({
-      ...egressConfig,
-      room: {
-        fileOutputs: [{
-          filepath: egressConfig.room.fileOutputs[0].filepath,
-          s3: {
-            bucket: egressConfig.room.fileOutputs[0].s3.bucket,
-            region: egressConfig.room.fileOutputs[0].s3.region,
-            accessKey: egressConfig.room.fileOutputs[0].s3.accessKey ? "***" : "MISSING",
-            secret: egressConfig.room.fileOutputs[0].s3.secret ? "***" : "MISSING",
-          }
-        }]
-      }
-    }, null, 2));
+    console.log(
+      "🎬 API: Egress config:",
+      JSON.stringify(
+        {
+          room: {
+            file: {
+              filepath: egressConfig.room.file.filepath,
+              output: {
+                case: "s3",
+                value: {
+                  bucket: egressConfig.room.file.output.value.bucket,
+                  region: egressConfig.room.file.output.value.region,
+                  accessKey: egressConfig.room.file.output.value.accessKey
+                    ? "***"
+                    : "MISSING",
+                  secret: egressConfig.room.file.output.value.secret
+                    ? "***"
+                    : "MISSING",
+                },
+              },
+            },
+          },
+        },
+        null,
+        2
+      )
+    );
 
     if (agentConfig) {
       try {
@@ -151,7 +165,7 @@ export async function POST(req: Request) {
       } catch (error: any) {
         console.error("❌ API: Room creation failed:", error.message);
         console.error("❌ API: Full error:", JSON.stringify(error, null, 2));
-        
+
         // Try creating without egress as fallback
         console.log("🔄 API: Retrying without egress config...");
         try {
@@ -164,7 +178,10 @@ export async function POST(req: Request) {
           });
           console.log("✅ API: Room created without egress (fallback)");
         } catch (fallbackError: any) {
-          console.error("❌ API: Fallback room creation failed:", fallbackError.message);
+          console.error(
+            "❌ API: Fallback room creation failed:",
+            fallbackError.message
+          );
           return new NextResponse("Failed to create room", { status: 500 });
         }
       }
@@ -181,7 +198,7 @@ export async function POST(req: Request) {
       } catch (error: any) {
         console.error("❌ API: Room creation failed:", error.message);
         console.error("❌ API: Full error:", JSON.stringify(error, null, 2));
-        
+
         // Try creating without egress as fallback
         console.log("🔄 API: Retrying without egress config...");
         try {
@@ -192,7 +209,10 @@ export async function POST(req: Request) {
           });
           console.log("✅ API: Room created without egress (fallback)");
         } catch (fallbackError: any) {
-          console.error("❌ API: Fallback room creation failed:", fallbackError.message);
+          console.error(
+            "❌ API: Fallback room creation failed:",
+            fallbackError.message
+          );
           return new NextResponse("Failed to create room", { status: 500 });
         }
       }
