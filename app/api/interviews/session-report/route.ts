@@ -13,7 +13,23 @@ import { generateAIReport } from "@/server/report-actions";
  * Processes the conversation history to extract transcript segments
  * and saves them to the database, then triggers AI report generation.
  */
+
+// Handle preflight OPTIONS request
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+    },
+  });
+}
+
 export async function POST(request: Request) {
+  console.log("📥 Session report POST received");
+  console.log("📥 Request method:", request.method);
+  console.log("📥 Request headers:", Object.fromEntries(request.headers));
   try {
     const body = await request.json();
     const { roomName, sessionReport } = body;
@@ -114,11 +130,18 @@ export async function POST(request: Request) {
         console.error("❌ AI report generation error:", error);
       });
 
-    return NextResponse.json({
-      success: true,
-      interviewId: interview.id,
-      transcriptSegments: transcriptSegments.length,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        interviewId: interview.id,
+        transcriptSegments: transcriptSegments.length,
+      },
+      {
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+        },
+      }
+    );
   } catch (error) {
     console.error("❌ Error processing session report:", error);
     return NextResponse.json(
@@ -126,7 +149,12 @@ export async function POST(request: Request) {
         error: "Failed to process session report",
         details: error instanceof Error ? error.message : String(error),
       },
-      { status: 500 }
+      {
+        status: 500,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+        },
+      }
     );
   }
 }
