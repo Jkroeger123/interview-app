@@ -30,7 +30,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     console.log("📥 Request body:", JSON.stringify(body, null, 2));
 
-    const { roomName, sessionReport } = body;
+    const { roomName, sessionReport, recordingInfo } = body;
 
     console.log("📥 Received session report for room:", roomName);
     console.log("📥 Session report keys:", Object.keys(sessionReport || {}));
@@ -39,6 +39,10 @@ export async function POST(request: Request) {
       "📥 History items count:",
       sessionReport?.history?.items?.length || 0
     );
+    
+    if (recordingInfo) {
+      console.log("📹 Recording info received:", recordingInfo);
+    }
 
     if (!roomName || !sessionReport) {
       return NextResponse.json(
@@ -137,15 +141,31 @@ export async function POST(request: Request) {
     );
 
     // Update interview status (direct Prisma call)
+    const updateData: any = {
+      status: "completed",
+      endedAt: endTime,
+      duration: duration,
+    };
+    
+    // If agent provided recording info, update it
+    if (recordingInfo?.expectedRecordingUrl) {
+      console.log("📹 Agent provided expected recording URL:", recordingInfo.expectedRecordingUrl);
+      console.log("📹 Recording will be available at this URL once LiveKit Egress completes (1-2 mins)");
+      
+      // Mark as processing and set the expected URL
+      // LiveKit webhook will update to "ready" when egress actually finishes
+      updateData.recordingStatus = "processing";
+      updateData.recordingUrl = recordingInfo.expectedRecordingUrl;
+    }
+    
     await prisma.interview.update({
       where: { id: interview.id },
-      data: {
-        status: "completed",
-        endedAt: endTime,
-        duration: duration,
-      },
+      data: updateData,
     });
     console.log("✅ Interview marked as completed");
+    if (recordingInfo?.expectedRecordingUrl) {
+      console.log("✅ Recording URL set (will be ready when egress completes)");
+    }
 
     // Generate AI report if we have transcript segments
     if (transcriptSegments.length > 0) {
