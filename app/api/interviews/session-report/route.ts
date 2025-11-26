@@ -216,7 +216,7 @@ export async function POST(request: Request) {
             interview.visaType,
             `Interview duration: ${duration} seconds`
           );
-          
+
           console.log("✅ AI analysis generated successfully!");
           console.log(`  - Overall score: ${report.overallScore}`);
           console.log(`  - Recommendation: ${report.recommendation}`);
@@ -240,7 +240,7 @@ export async function POST(request: Request) {
           });
 
           console.log("✅ AI report saved successfully to database");
-        } catch (error) {
+        } catch (error: any) {
           console.error("❌ AI report generation failed:");
           console.error("  - Error type:", error?.constructor?.name);
           console.error("  - Error message:", error?.message);
