@@ -5,6 +5,7 @@ import {
   useVoiceAssistant,
   VideoTrack,
   useLocalParticipant,
+  useRoomContext,
 } from "@livekit/components-react";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -22,9 +23,21 @@ export function AvatarDisplay({
 }: AvatarDisplayProps) {
   const { videoTrack, agent, state: agentState } = useVoiceAssistant();
   const localParticipant = useLocalParticipant();
+  const room = useRoomContext();
   const [videoPlaying, setVideoPlaying] = useState(false);
   const [agentHasLeft, setAgentHasLeft] = useState(false);
   const videoReadyRef = useRef(false);
+  
+  // Debug logging
+  useEffect(() => {
+    console.log("🎥 AvatarDisplay state:", {
+      sessionStarted,
+      hasVideoTrack: !!videoTrack,
+      hasAgent: !!agent,
+      agentState,
+      videoPlaying,
+    });
+  }, [sessionStarted, videoTrack, agent, agentState, videoPlaying]);
 
   // Enable camera when session starts
   useEffect(() => {
@@ -39,6 +52,50 @@ export function AvatarDisplay({
       enableCamera();
     }
   }, [sessionStarted, localParticipant.localParticipant]);
+
+  // Fallback: Detect agent by state instead of waiting for videoTrack
+  // If agent is speaking/listening, they've joined successfully
+  useEffect(() => {
+    if (!videoReadyRef.current && agentState && agentState !== "disconnected" && agentState !== "connecting") {
+      console.log("🎤 Agent detected via agentState (no video):", agentState);
+      const timer = setTimeout(() => {
+        setVideoPlaying(true);
+        videoReadyRef.current = true;
+        onVideoReady?.();
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [agentState, onVideoReady]);
+
+  // Additional fallback: Check for remote participants (agent joined)
+  // Poll multiple times as agent might join after session starts
+  useEffect(() => {
+    if (!videoReadyRef.current && sessionStarted && room) {
+      let attempts = 0;
+      const maxAttempts = 10; // Check for 10 seconds
+      
+      const checkInterval = setInterval(() => {
+        const remoteParticipants = Array.from(room.remoteParticipants.values());
+        attempts++;
+        
+        console.log(`🔍 [Attempt ${attempts}/${maxAttempts}] Checking remote participants:`, remoteParticipants.length);
+        
+        if (remoteParticipants.length > 0) {
+          console.log("✅ Remote participant detected (agent):", remoteParticipants[0].identity);
+          clearInterval(checkInterval);
+          setVideoPlaying(true);
+          videoReadyRef.current = true;
+          onVideoReady?.();
+        } else if (attempts >= maxAttempts) {
+          console.warn("⚠️ No remote participants found after polling");
+          clearInterval(checkInterval);
+        }
+      }, 1000); // Check every second
+      
+      return () => clearInterval(checkInterval);
+    }
+  }, [sessionStarted, room, onVideoReady]);
 
   // Detect when video actually starts playing
   useEffect(() => {

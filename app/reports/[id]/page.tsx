@@ -6,6 +6,7 @@ import { Navbar } from "@/components/navbar";
 import { VideoPlayer } from "@/components/reports/video-player";
 import { TranscriptDisplay } from "@/components/reports/transcript-display";
 import { AIAnalysisCard } from "@/components/reports/ai-analysis-card";
+import { AutoRefreshWrapper } from "@/components/reports/auto-refresh-wrapper";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -51,8 +52,9 @@ export default async function ReportPage({ params }: PageProps) {
   const durationMinutes = interview.duration ? Math.floor(interview.duration / 60) : null;
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
+    <AutoRefreshWrapper recordingStatus={interview.recordingStatus}>
+      <div className="min-h-screen bg-background">
+        <Navbar />
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -160,6 +162,7 @@ export default async function ReportPage({ params }: PageProps) {
         )}
       </div>
     </div>
+    </AutoRefreshWrapper>
   );
 }
 

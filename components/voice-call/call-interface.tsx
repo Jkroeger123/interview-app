@@ -101,11 +101,41 @@ export const CallInterface = forwardRef<CallInterfaceHandle, CallInterfaceProps>
         description: `${error.name}: ${error.message}`,
       });
     };
+    
+    const onTrackSubscribed = (track: any, publication: any, participant: any) => {
+      console.log("🎵 TRACK SUBSCRIBED:", {
+        trackKind: track.kind,
+        trackSource: track.source,
+        participantIdentity: participant.identity,
+        trackSid: track.sid,
+        isMuted: track.isMuted,
+        volume: track.volume,
+      });
+      
+      // If it's an audio track from the agent, log more details
+      if (track.kind === "audio" && participant.identity.includes("agent")) {
+        console.log("🔊 AGENT AUDIO TRACK DETAILS:", {
+          mediaStreamTrack: track.mediaStreamTrack,
+          enabled: track.mediaStreamTrack?.enabled,
+          muted: track.mediaStreamTrack?.muted,
+          readyState: track.mediaStreamTrack?.readyState,
+        });
+      }
+    };
+    
+    const onTrackUnsubscribed = (track: any, publication: any, participant: any) => {
+      console.log("🔇 TRACK UNSUBSCRIBED:", {
+        trackKind: track.kind,
+        participantIdentity: participant.identity,
+      });
+    };
 
     room.on(RoomEvent.Connected, onConnected);
     room.on(RoomEvent.Reconnecting, onReconnecting);
     room.on(RoomEvent.MediaDevicesError, onMediaDevicesError);
     room.on(RoomEvent.Disconnected, onDisconnected);
+    room.on(RoomEvent.TrackSubscribed, onTrackSubscribed);
+    room.on(RoomEvent.TrackUnsubscribed, onTrackUnsubscribed);
 
     return () => {
       console.log("🔴 CLEANUP: Component unmounting, removing event listeners", {
@@ -242,7 +272,11 @@ export const CallInterface = forwardRef<CallInterfaceHandle, CallInterfaceProps>
 
         <RoomContext.Provider value={roomRef.current}>
           <RoomAudioRenderer />
-          <StartAudio label="Start Audio" />
+          
+          {/* Start Audio button - MUST be clicked for browser autoplay policy */}
+          <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[100]">
+            <StartAudio label="🔊 Click Here to Enable Audio" />
+          </div>
 
           <CallSession
             config={config}
