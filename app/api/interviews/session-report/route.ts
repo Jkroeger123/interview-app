@@ -8,7 +8,7 @@ import { generateAIReport } from "@/server/report-actions";
 
 /**
  * POST /api/interviews/session-report
- * 
+ *
  * Receives session report from LiveKit agent when interview ends.
  * Processes the conversation history to extract transcript segments
  * and saves them to the database, then triggers AI report generation.
@@ -94,7 +94,9 @@ export async function POST(request: Request) {
       }
     }
 
-    console.log(`💾 Saving ${transcriptSegments.length} transcript segments...`);
+    console.log(
+      `💾 Saving ${transcriptSegments.length} transcript segments...`
+    );
 
     // Bulk create transcript segments
     if (transcriptSegments.length > 0) {
@@ -110,7 +112,9 @@ export async function POST(request: Request) {
     // Calculate interview duration
     const startTime = new Date(interview.startedAt);
     const endTime = new Date();
-    const duration = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
+    const duration = Math.floor(
+      (endTime.getTime() - startTime.getTime()) / 1000
+    );
 
     // Update interview status
     await updateInterviewStatus(interview.id, "completed", endTime, duration);
@@ -158,4 +162,3 @@ export async function POST(request: Request) {
     );
   }
 }
-
