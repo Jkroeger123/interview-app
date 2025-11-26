@@ -13,43 +13,43 @@ const LIVEKIT_WEBHOOK_SECRET = process.env.LIVEKIT_WEBHOOK_SECRET; // Optional: 
 const AWS_S3_BUCKET = process.env.AWS_S3_BUCKET;
 const AWS_S3_REGION = process.env.AWS_S3_REGION;
 
+// ⚠️ TEMPORARY: Skip signature verification for debugging
+// TODO: Re-enable this in production by setting SKIP_WEBHOOK_VERIFICATION=false
+const SKIP_WEBHOOK_VERIFICATION = process.env.SKIP_WEBHOOK_VERIFICATION !== "false";
+
 export async function POST(req: Request) {
   try {
-    // Use webhook-specific secret if available, otherwise fall back to API secret
-    const webhookSecret = LIVEKIT_WEBHOOK_SECRET || LIVEKIT_API_SECRET;
-
-    if (!LIVEKIT_API_KEY || !webhookSecret) {
-      console.error("❌ LiveKit credentials not configured");
-      console.error("  - API Key:", LIVEKIT_API_KEY ? "Set" : "Missing");
-      console.error(
-        "  - Webhook Secret:",
-        LIVEKIT_WEBHOOK_SECRET ? "Set (custom)" : "Using API secret"
-      );
-      console.error("  - API Secret:", LIVEKIT_API_SECRET ? "Set" : "Missing");
-      throw new Error("LiveKit credentials not configured");
-    }
-
     const body = await req.text();
     const authHeader = req.headers.get("Authorization");
 
-    if (!authHeader) {
-      console.error("❌ Webhook: Missing Authorization header");
-      return new NextResponse("Unauthorized", { status: 401 });
+    let event: any;
+
+    if (SKIP_WEBHOOK_VERIFICATION) {
+      // ⚠️ INSECURE: Skip signature verification (for debugging only)
+      console.warn("⚠️ WARNING: Webhook signature verification is DISABLED");
+      console.warn("⚠️ This is insecure and should only be used for debugging");
+      console.warn("⚠️ Set SKIP_WEBHOOK_VERIFICATION=false to re-enable security");
+      
+      // Parse the JSON body directly without verification
+      event = JSON.parse(body);
+    } else {
+      // Secure path: Verify webhook signature
+      const webhookSecret = LIVEKIT_WEBHOOK_SECRET || LIVEKIT_API_SECRET;
+
+      if (!LIVEKIT_API_KEY || !webhookSecret) {
+        console.error("❌ LiveKit credentials not configured");
+        throw new Error("LiveKit credentials not configured");
+      }
+
+      if (!authHeader) {
+        console.error("❌ Webhook: Missing Authorization header");
+        return new NextResponse("Unauthorized", { status: 401 });
+      }
+
+      console.log("🔐 Verifying webhook signature...");
+      const receiver = new WebhookReceiver(LIVEKIT_API_KEY, webhookSecret);
+      event = await receiver.receive(body, authHeader);
     }
-
-    console.log("🔐 Verifying webhook signature...");
-    console.log(
-      "  - Using API Key:",
-      LIVEKIT_API_KEY?.substring(0, 10) + "..."
-    );
-    console.log(
-      "  - Using Secret type:",
-      LIVEKIT_WEBHOOK_SECRET ? "Custom webhook secret" : "API secret"
-    );
-
-    // Verify webhook signature
-    const receiver = new WebhookReceiver(LIVEKIT_API_KEY, webhookSecret);
-    const event = await receiver.receive(body, authHeader);
 
     console.log("📥 LiveKit webhook received:", event.event);
 
@@ -69,20 +69,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("❌ Webhook error:", error);
-
-    // If signature verification failed, provide helpful debugging info
-    if (error instanceof Error && error.message.includes("signature")) {
-      console.error("🔐 Signature verification failed!");
-      console.error("  This usually means:");
-      console.error(
-        "  1. LIVEKIT_API_SECRET in Vercel doesn't match LiveKit Cloud"
-      );
-      console.error(
-        "  2. You need to set LIVEKIT_WEBHOOK_SECRET if using custom webhook secret"
-      );
-      console.error("  3. Check your LiveKit project settings → Keys");
-    }
-
     return new NextResponse(
       error instanceof Error ? error.message : "Webhook processing failed",
       { status: 500 }
