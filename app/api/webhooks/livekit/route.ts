@@ -89,7 +89,7 @@ async function handleEgressStarted(event: any) {
     const interview = await prisma.interview.findUnique({
       where: { roomName },
     });
-    
+
     if (!interview) {
       console.error("❌ Interview not found for room:", roomName);
       return;
@@ -117,16 +117,16 @@ async function handleEgressUpdated(event: any) {
       const interview = await prisma.interview.findUnique({
         where: { roomName },
       });
-      
+
       if (interview) {
         let newStatus: string | null = null;
-        
+
         if (status === "EGRESS_ACTIVE") {
           newStatus = "recording";
         } else if (status === "EGRESS_ENDING") {
           newStatus = "processing";
         }
-        
+
         if (newStatus) {
           await prisma.interview.update({
             where: { id: interview.id },
@@ -159,7 +159,7 @@ async function handleEgressEnded(event: any) {
     const interview = await prisma.interview.findUnique({
       where: { roomName },
     });
-    
+
     if (!interview) {
       console.error("❌ Interview not found for room:", roomName);
       return;
@@ -186,7 +186,7 @@ async function handleEgressEnded(event: any) {
       });
 
       console.log("✅ Recording status updated to ready");
-      
+
       // NOTE: AI report generation is handled by the session-report endpoint
       // when the agent sends the transcript. No need to generate it here.
     } else {
