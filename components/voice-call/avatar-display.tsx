@@ -27,7 +27,7 @@ export function AvatarDisplay({
   const [videoPlaying, setVideoPlaying] = useState(false);
   const [agentHasLeft, setAgentHasLeft] = useState(false);
   const videoReadyRef = useRef(false);
-  
+
   // Debug logging
   useEffect(() => {
     console.log("🎥 AvatarDisplay state:", {
@@ -56,14 +56,19 @@ export function AvatarDisplay({
   // Fallback: Detect agent by state instead of waiting for videoTrack
   // If agent is speaking/listening, they've joined successfully
   useEffect(() => {
-    if (!videoReadyRef.current && agentState && agentState !== "disconnected" && agentState !== "connecting") {
+    if (
+      !videoReadyRef.current &&
+      agentState &&
+      agentState !== "disconnected" &&
+      agentState !== "connecting"
+    ) {
       console.log("🎤 Agent detected via agentState (no video):", agentState);
       const timer = setTimeout(() => {
         setVideoPlaying(true);
         videoReadyRef.current = true;
         onVideoReady?.();
       }, 100);
-      
+
       return () => clearTimeout(timer);
     }
   }, [agentState, onVideoReady]);
@@ -74,15 +79,21 @@ export function AvatarDisplay({
     if (!videoReadyRef.current && sessionStarted && room) {
       let attempts = 0;
       const maxAttempts = 10; // Check for 10 seconds
-      
+
       const checkInterval = setInterval(() => {
         const remoteParticipants = Array.from(room.remoteParticipants.values());
         attempts++;
-        
-        console.log(`🔍 [Attempt ${attempts}/${maxAttempts}] Checking remote participants:`, remoteParticipants.length);
-        
+
+        console.log(
+          `🔍 [Attempt ${attempts}/${maxAttempts}] Checking remote participants:`,
+          remoteParticipants.length
+        );
+
         if (remoteParticipants.length > 0) {
-          console.log("✅ Remote participant detected (agent):", remoteParticipants[0].identity);
+          console.log(
+            "✅ Remote participant detected (agent):",
+            remoteParticipants[0].identity
+          );
           clearInterval(checkInterval);
           setVideoPlaying(true);
           videoReadyRef.current = true;
@@ -92,7 +103,7 @@ export function AvatarDisplay({
           clearInterval(checkInterval);
         }
       }, 1000); // Check every second
-      
+
       return () => clearInterval(checkInterval);
     }
   }, [sessionStarted, room, onVideoReady]);

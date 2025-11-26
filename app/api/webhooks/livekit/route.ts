@@ -17,11 +17,14 @@ export async function POST(req: Request) {
   try {
     // Use webhook-specific secret if available, otherwise fall back to API secret
     const webhookSecret = LIVEKIT_WEBHOOK_SECRET || LIVEKIT_API_SECRET;
-    
+
     if (!LIVEKIT_API_KEY || !webhookSecret) {
       console.error("❌ LiveKit credentials not configured");
       console.error("  - API Key:", LIVEKIT_API_KEY ? "Set" : "Missing");
-      console.error("  - Webhook Secret:", LIVEKIT_WEBHOOK_SECRET ? "Set (custom)" : "Using API secret");
+      console.error(
+        "  - Webhook Secret:",
+        LIVEKIT_WEBHOOK_SECRET ? "Set (custom)" : "Using API secret"
+      );
       console.error("  - API Secret:", LIVEKIT_API_SECRET ? "Set" : "Missing");
       throw new Error("LiveKit credentials not configured");
     }
@@ -35,8 +38,14 @@ export async function POST(req: Request) {
     }
 
     console.log("🔐 Verifying webhook signature...");
-    console.log("  - Using API Key:", LIVEKIT_API_KEY?.substring(0, 10) + "...");
-    console.log("  - Using Secret type:", LIVEKIT_WEBHOOK_SECRET ? "Custom webhook secret" : "API secret");
+    console.log(
+      "  - Using API Key:",
+      LIVEKIT_API_KEY?.substring(0, 10) + "..."
+    );
+    console.log(
+      "  - Using Secret type:",
+      LIVEKIT_WEBHOOK_SECRET ? "Custom webhook secret" : "API secret"
+    );
 
     // Verify webhook signature
     const receiver = new WebhookReceiver(LIVEKIT_API_KEY, webhookSecret);
@@ -60,16 +69,20 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("❌ Webhook error:", error);
-    
+
     // If signature verification failed, provide helpful debugging info
     if (error instanceof Error && error.message.includes("signature")) {
       console.error("🔐 Signature verification failed!");
       console.error("  This usually means:");
-      console.error("  1. LIVEKIT_API_SECRET in Vercel doesn't match LiveKit Cloud");
-      console.error("  2. You need to set LIVEKIT_WEBHOOK_SECRET if using custom webhook secret");
+      console.error(
+        "  1. LIVEKIT_API_SECRET in Vercel doesn't match LiveKit Cloud"
+      );
+      console.error(
+        "  2. You need to set LIVEKIT_WEBHOOK_SECRET if using custom webhook secret"
+      );
       console.error("  3. Check your LiveKit project settings → Keys");
     }
-    
+
     return new NextResponse(
       error instanceof Error ? error.message : "Webhook processing failed",
       { status: 500 }

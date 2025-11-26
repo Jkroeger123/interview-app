@@ -1,6 +1,13 @@
 "use client";
 
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
 import { Room, RoomEvent } from "livekit-client";
 import {
   RoomAudioRenderer,
@@ -27,30 +34,38 @@ export interface CallInterfaceHandle {
   disconnect: () => void;
 }
 
-export const CallInterface = forwardRef<CallInterfaceHandle, CallInterfaceProps>(
-  function CallInterface({ config, agentConfig, onDisconnect, showWelcome = false }, ref) {
-    // Use refs to avoid stale closures and unnecessary re-renders
-    const roomRef = useRef(new Room());
-    const hasConnectedRef = useRef(false);
-    const isConnectingRef = useRef(false);
-    const mountTimeRef = useRef(Date.now());
-    
-    const [isConnected, setIsConnected] = useState(false);
-    const [connectionFailed, setConnectionFailed] = useState(false);
-    const { existingOrRefreshConnectionDetails } = useConnectionDetails(config, agentConfig);
+export const CallInterface = forwardRef<
+  CallInterfaceHandle,
+  CallInterfaceProps
+>(function CallInterface(
+  { config, agentConfig, onDisconnect, showWelcome = false },
+  ref
+) {
+  // Use refs to avoid stale closures and unnecessary re-renders
+  const roomRef = useRef(new Room());
+  const hasConnectedRef = useRef(false);
+  const isConnectingRef = useRef(false);
+  const mountTimeRef = useRef(Date.now());
 
-    console.log("🔵 RENDER: CallInterface", {
-      showWelcome,
-      connectionFailed,
-      isConnected,
-      roomState: roomRef.current.state,
-      mountAge: Date.now() - mountTimeRef.current,
-    });
+  const [isConnected, setIsConnected] = useState(false);
+  const [connectionFailed, setConnectionFailed] = useState(false);
+  const { existingOrRefreshConnectionDetails } = useConnectionDetails(
+    config,
+    agentConfig
+  );
+
+  console.log("🔵 RENDER: CallInterface", {
+    showWelcome,
+    connectionFailed,
+    isConnected,
+    roomState: roomRef.current.state,
+    mountAge: Date.now() - mountTimeRef.current,
+  });
 
   // Setup room event listeners ONCE (reactive - belongs in useEffect)
   useEffect(() => {
     const room = roomRef.current;
-    
+
     console.log("🟢 EFFECT: Setting up room event listeners (ONCE)", {
       roomState: room.state,
       hasOnDisconnect: !!onDisconnect,
@@ -94,15 +109,19 @@ export const CallInterface = forwardRef<CallInterfaceHandle, CallInterfaceProps>
         setConnectionFailed(true);
       }
     };
-    
+
     const onMediaDevicesError = (error: Error) => {
       console.error("❌ MEDIA DEVICES ERROR:", error);
       toast.error("Media Device Error", {
         description: `${error.name}: ${error.message}`,
       });
     };
-    
-    const onTrackSubscribed = (track: any, publication: any, participant: any) => {
+
+    const onTrackSubscribed = (
+      track: any,
+      publication: any,
+      participant: any
+    ) => {
       console.log("🎵 TRACK SUBSCRIBED:", {
         trackKind: track.kind,
         trackSource: track.source,
@@ -111,7 +130,7 @@ export const CallInterface = forwardRef<CallInterfaceHandle, CallInterfaceProps>
         isMuted: track.isMuted,
         volume: track.volume,
       });
-      
+
       // If it's an audio track from the agent, log more details
       if (track.kind === "audio" && participant.identity.includes("agent")) {
         console.log("🔊 AGENT AUDIO TRACK DETAILS:", {
@@ -122,8 +141,12 @@ export const CallInterface = forwardRef<CallInterfaceHandle, CallInterfaceProps>
         });
       }
     };
-    
-    const onTrackUnsubscribed = (track: any, publication: any, participant: any) => {
+
+    const onTrackUnsubscribed = (
+      track: any,
+      publication: any,
+      participant: any
+    ) => {
       console.log("🔇 TRACK UNSUBSCRIBED:", {
         trackKind: track.kind,
         participantIdentity: participant.identity,
@@ -138,16 +161,19 @@ export const CallInterface = forwardRef<CallInterfaceHandle, CallInterfaceProps>
     room.on(RoomEvent.TrackUnsubscribed, onTrackUnsubscribed);
 
     return () => {
-      console.log("🔴 CLEANUP: Component unmounting, removing event listeners", {
-        roomState: room.state,
-        isConnecting: isConnectingRef.current,
-        mountAge: Date.now() - mountTimeRef.current,
-      });
+      console.log(
+        "🔴 CLEANUP: Component unmounting, removing event listeners",
+        {
+          roomState: room.state,
+          isConnecting: isConnectingRef.current,
+          mountAge: Date.now() - mountTimeRef.current,
+        }
+      );
       room.off(RoomEvent.Connected, onConnected);
       room.off(RoomEvent.Reconnecting, onReconnecting);
       room.off(RoomEvent.Disconnected, onDisconnected);
       room.off(RoomEvent.MediaDevicesError, onMediaDevicesError);
-      
+
       // Only disconnect if we're actually connected AND not in the middle of connecting
       // (Strict Mode test unmounts/remounts, we don't want to kill active connections)
       if (room.state === "connected") {
@@ -158,133 +184,150 @@ export const CallInterface = forwardRef<CallInterfaceHandle, CallInterfaceProps>
         console.log("🔴 CLEANUP: Disconnecting stale connection");
         room.disconnect();
       } else {
-        console.log("🔵 CLEANUP: Skipping disconnect (state:", room.state, ", connecting:", isConnectingRef.current, ")");
+        console.log(
+          "🔵 CLEANUP: Skipping disconnect (state:",
+          room.state,
+          ", connecting:",
+          isConnectingRef.current,
+          ")"
+        );
       }
     };
   }, []); // Empty deps - runs once on mount, cleanup on unmount
 
   // Explicit connection function (imperative - called by parent or button)
-    const connectToRoom = useCallback(async () => {
-      const room = roomRef.current;
-      
-      // Guard against double-connection
-      if (isConnectingRef.current || room.state === "connected" || room.state === "connecting") {
-        console.log("⚠️ Already connected/connecting, ignoring request");
-        return;
-      }
+  const connectToRoom = useCallback(async () => {
+    const room = roomRef.current;
 
-      console.log("🟢 CONNECTING: Starting connection sequence (explicit call)", {
-        roomState: room.state,
+    // Guard against double-connection
+    if (
+      isConnectingRef.current ||
+      room.state === "connected" ||
+      room.state === "connecting"
+    ) {
+      console.log("⚠️ Already connected/connecting, ignoring request");
+      return;
+    }
+
+    console.log("🟢 CONNECTING: Starting connection sequence (explicit call)", {
+      roomState: room.state,
+      mountAge: Date.now() - mountTimeRef.current,
+    });
+
+    isConnectingRef.current = true;
+    hasConnectedRef.current = true;
+    setConnectionFailed(false);
+
+    try {
+      // Step 1: Get connection details
+      const connectionDetails = await existingOrRefreshConnectionDetails();
+      console.log("🔑 Got connection details:", {
+        serverUrl: connectionDetails.serverUrl,
+        roomName: connectionDetails.roomName,
         mountAge: Date.now() - mountTimeRef.current,
       });
 
-      isConnectingRef.current = true;
-      hasConnectedRef.current = true;
-      setConnectionFailed(false);
+      // Step 2: Connect to room FIRST
+      await room.connect(
+        connectionDetails.serverUrl,
+        connectionDetails.participantToken
+      );
+      console.log("🔌 Connected to room");
 
-      try {
-        // Step 1: Get connection details
-        const connectionDetails = await existingOrRefreshConnectionDetails();
-        console.log("🔑 Got connection details:", {
-          serverUrl: connectionDetails.serverUrl,
-          roomName: connectionDetails.roomName,
-          mountAge: Date.now() - mountTimeRef.current,
-        });
+      // Step 3: Enable microphone AFTER connected
+      await room.localParticipant.setMicrophoneEnabled(true);
+      console.log("🎤 Microphone enabled");
 
-        // Step 2: Connect to room FIRST
-        await room.connect(
-          connectionDetails.serverUrl,
-          connectionDetails.participantToken
-        );
-        console.log("🔌 Connected to room");
+      console.log("✅ Connection sequence completed successfully");
+    } catch (error: any) {
+      console.error("❌ CONNECTION ERROR:", {
+        error,
+        name: error?.name,
+        message: error?.message,
+        mountAge: Date.now() - mountTimeRef.current,
+      });
 
-        // Step 3: Enable microphone AFTER connected
-        await room.localParticipant.setMicrophoneEnabled(true);
-        console.log("🎤 Microphone enabled");
-        
-        console.log("✅ Connection sequence completed successfully");
-      } catch (error: any) {
-        console.error("❌ CONNECTION ERROR:", {
-          error,
-          name: error?.name,
-          message: error?.message,
-          mountAge: Date.now() - mountTimeRef.current,
-        });
+      toast.error("Connection Error", {
+        description: `${error?.name || "Error"}: ${
+          error?.message || "Unknown error"
+        }`,
+      });
 
-        toast.error("Connection Error", {
-          description: `${error?.name || 'Error'}: ${error?.message || 'Unknown error'}`,
-        });
+      setConnectionFailed(true);
+    } finally {
+      isConnectingRef.current = false;
+      console.log("🏁 Connection sequence finished");
+    }
+  }, [existingOrRefreshConnectionDetails]);
 
-        setConnectionFailed(true);
-      } finally {
-        isConnectingRef.current = false;
-        console.log("🏁 Connection sequence finished");
-      }
-    }, [existingOrRefreshConnectionDetails]);
+  const disconnectFromRoom = useCallback(() => {
+    const room = roomRef.current;
+    console.log("🔴 Explicit disconnect requested");
+    if (room.state === "connected" || room.state === "connecting") {
+      room.disconnect();
+    }
+  }, []);
 
-    const disconnectFromRoom = useCallback(() => {
-      const room = roomRef.current;
-      console.log("🔴 Explicit disconnect requested");
-      if (room.state === "connected" || room.state === "connecting") {
-        room.disconnect();
-      }
-    }, []);
-
-    // Expose connect/disconnect functions to parent via ref
-    useImperativeHandle(ref, () => ({
+  // Expose connect/disconnect functions to parent via ref
+  useImperativeHandle(
+    ref,
+    () => ({
       connect: connectToRoom,
       disconnect: disconnectFromRoom,
-    }), [connectToRoom, disconnectFromRoom]);
+    }),
+    [connectToRoom, disconnectFromRoom]
+  );
 
-    const handleRetry = () => {
-      console.log("🔄 Retry button clicked");
-      setConnectionFailed(false);
-      connectToRoom();
-    };
+  const handleRetry = () => {
+    console.log("🔄 Retry button clicked");
+    setConnectionFailed(false);
+    connectToRoom();
+  };
 
-    return (
-      <main className="relative min-h-screen">
-        {showWelcome && (
-          <CallWelcome
-            onStartCall={connectToRoom}
-            disabled={isConnectingRef.current || isConnected}
-          />
-        )}
+  return (
+    <main className="relative min-h-screen">
+      {showWelcome && (
+        <CallWelcome
+          onStartCall={connectToRoom}
+          disabled={isConnectingRef.current || isConnected}
+        />
+      )}
 
-        {/* Show retry button when connection failed */}
-        {connectionFailed && !showWelcome && (
-          <div className="fixed inset-0 z-20 flex items-center justify-center bg-background">
-            <div className="text-center">
-              <p className="mb-4 text-lg text-muted-foreground">
-                Connection ended or failed to start
-              </p>
-              <Button 
-                onClick={handleRetry} 
-                size="lg" 
-                className="bg-blue-600 hover:bg-blue-700"
-                disabled={isConnectingRef.current}
-              >
-                {isConnectingRef.current ? "Connecting..." : "Reconnect to Interview"}
-              </Button>
-            </div>
+      {/* Show retry button when connection failed */}
+      {connectionFailed && !showWelcome && (
+        <div className="fixed inset-0 z-20 flex items-center justify-center bg-background">
+          <div className="text-center">
+            <p className="mb-4 text-lg text-muted-foreground">
+              Connection ended or failed to start
+            </p>
+            <Button
+              onClick={handleRetry}
+              size="lg"
+              className="bg-blue-600 hover:bg-blue-700"
+              disabled={isConnectingRef.current}
+            >
+              {isConnectingRef.current
+                ? "Connecting..."
+                : "Reconnect to Interview"}
+            </Button>
           </div>
-        )}
+        </div>
+      )}
 
-        <RoomContext.Provider value={roomRef.current}>
-          <RoomAudioRenderer />
-          
-          {/* Start Audio button - MUST be clicked for browser autoplay policy */}
-          <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[100]">
-            <StartAudio label="🔊 Click Here to Enable Audio" />
-          </div>
+      <RoomContext.Provider value={roomRef.current}>
+        <RoomAudioRenderer />
 
-          <CallSession
-            config={config}
-            disabled={!isConnected}
-            sessionStarted={isConnected}
-          />
-        </RoomContext.Provider>
-      </main>
-    );
-  }
-);
+        {/* Start Audio button - MUST be clicked for browser autoplay policy */}
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[100]">
+          <StartAudio label="🔊 Click Here to Enable Audio" />
+        </div>
+
+        <CallSession
+          config={config}
+          disabled={!isConnected}
+          sessionStarted={isConnected}
+        />
+      </RoomContext.Provider>
+    </main>
+  );
+});
