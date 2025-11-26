@@ -21,23 +21,97 @@ export function AvatarDisplay({
   onVideoReady,
   cameraVisible = true,
 }: AvatarDisplayProps) {
-  const { videoTrack, agent, state: agentState } = useVoiceAssistant();
+  const {
+    videoTrack: agentVideoTrack,
+    agent,
+    state: agentState,
+  } = useVoiceAssistant();
   const localParticipant = useLocalParticipant();
   const room = useRoomContext();
   const [videoPlaying, setVideoPlaying] = useState(false);
   const [agentHasLeft, setAgentHasLeft] = useState(false);
   const videoReadyRef = useRef(false);
+  const [tavusVideoTrack, setTavusVideoTrack] = useState<any>(null);
+
+  // Look for Tavus participant video track
+  useEffect(() => {
+    if (!sessionStarted || !room) return;
+
+    const findTavusTrack = () => {
+      const participants = Array.from(room.remoteParticipants.values());
+
+      // Look for tavus-avatar-agent participant
+      const tavusParticipant = participants.find(
+        (p) =>
+          p.identity === "tavus-avatar-agent" || p.identity.includes("tavus")
+      );
+
+      if (tavusParticipant) {
+        console.log("🎭 Found Tavus participant:", tavusParticipant.identity);
+
+        // Get video track from Tavus participant
+        const videoPublications = Array.from(
+          tavusParticipant.trackPublications.values()
+        ).filter((pub) => pub.kind === "video");
+
+        if (videoPublications.length > 0) {
+          const videoPub = videoPublications[0];
+          console.log("📹 Found Tavus video track:", videoPub.trackSid);
+
+          if (videoPub.track) {
+            setTavusVideoTrack({
+              participant: tavusParticipant,
+              publication: videoPub,
+              source: videoPub.source,
+            });
+          }
+        }
+      }
+    };
+
+    // Check immediately
+    findTavusTrack();
+
+    // Check periodically for Tavus participant
+    const interval = setInterval(findTavusTrack, 1000);
+    return () => clearInterval(interval);
+  }, [sessionStarted, room]);
+
+  // Use Tavus video track if available, otherwise use agent video track
+  const videoTrack = tavusVideoTrack || agentVideoTrack;
 
   // Debug logging
   useEffect(() => {
     console.log("🎥 AvatarDisplay state:", {
       sessionStarted,
-      hasVideoTrack: !!videoTrack,
+      hasAgentVideoTrack: !!agentVideoTrack,
+      hasTavusVideoTrack: !!tavusVideoTrack,
+      usingTrack: tavusVideoTrack
+        ? "tavus"
+        : agentVideoTrack
+        ? "agent"
+        : "none",
+      videoTrackDetails: videoTrack
+        ? {
+            sid: videoTrack.publication?.trackSid,
+            source: videoTrack.source,
+            participant: videoTrack.participant?.identity,
+          }
+        : null,
       hasAgent: !!agent,
+      agentIdentity: agent?.identity,
       agentState,
       videoPlaying,
     });
-  }, [sessionStarted, videoTrack, agent, agentState, videoPlaying]);
+  }, [
+    sessionStarted,
+    agentVideoTrack,
+    tavusVideoTrack,
+    videoTrack,
+    agent,
+    agentState,
+    videoPlaying,
+  ]);
 
   // Enable camera when session starts
   useEffect(() => {

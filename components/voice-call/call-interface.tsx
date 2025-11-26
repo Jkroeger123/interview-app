@@ -125,20 +125,37 @@ export const CallInterface = forwardRef<
       console.log("🎵 TRACK SUBSCRIBED:", {
         trackKind: track.kind,
         trackSource: track.source,
+        trackSourceName: publication.source,
         participantIdentity: participant.identity,
         trackSid: track.sid,
+        publicationSid: publication.trackSid,
         isMuted: track.isMuted,
         volume: track.volume,
       });
 
-      // If it's an audio track from the agent, log more details
-      if (track.kind === "audio" && participant.identity.includes("agent")) {
-        console.log("🔊 AGENT AUDIO TRACK DETAILS:", {
-          mediaStreamTrack: track.mediaStreamTrack,
-          enabled: track.mediaStreamTrack?.enabled,
-          muted: track.mediaStreamTrack?.muted,
-          readyState: track.mediaStreamTrack?.readyState,
-        });
+      // Log details for agent tracks (audio and video)
+      if (participant.identity.includes("agent")) {
+        if (track.kind === "audio") {
+          console.log("🔊 AGENT AUDIO TRACK DETAILS:", {
+            mediaStreamTrack: track.mediaStreamTrack,
+            enabled: track.mediaStreamTrack?.enabled,
+            muted: track.mediaStreamTrack?.muted,
+            readyState: track.mediaStreamTrack?.readyState,
+            settings: track.mediaStreamTrack?.getSettings?.(),
+          });
+        } else if (track.kind === "video") {
+          console.log("🎥 AGENT VIDEO TRACK DETAILS:", {
+            mediaStreamTrack: track.mediaStreamTrack,
+            enabled: track.mediaStreamTrack?.enabled,
+            muted: track.mediaStreamTrack?.muted,
+            readyState: track.mediaStreamTrack?.readyState,
+            settings: track.mediaStreamTrack?.getSettings?.(),
+            dimensions: {
+              width: track.dimensions?.width,
+              height: track.dimensions?.height,
+            },
+          });
+        }
       }
     };
 
@@ -153,10 +170,41 @@ export const CallInterface = forwardRef<
       });
     };
 
+    const onParticipantConnected = (participant: any) => {
+      console.log("👤 PARTICIPANT JOINED:", {
+        identity: participant.identity,
+        sid: participant.sid,
+        name: participant.name,
+        metadata: participant.metadata,
+        trackCount: participant.trackPublications?.size || 0,
+      });
+
+      // Log all tracks this participant has
+      if (participant.trackPublications) {
+        participant.trackPublications.forEach((pub: any) => {
+          console.log("  📌 Track publication:", {
+            kind: pub.kind,
+            source: pub.source,
+            trackSid: pub.trackSid,
+            subscribed: pub.isSubscribed,
+          });
+        });
+      }
+    };
+
+    const onParticipantDisconnected = (participant: any) => {
+      console.log("👋 PARTICIPANT LEFT:", {
+        identity: participant.identity,
+        sid: participant.sid,
+      });
+    };
+
     room.on(RoomEvent.Connected, onConnected);
     room.on(RoomEvent.Reconnecting, onReconnecting);
     room.on(RoomEvent.MediaDevicesError, onMediaDevicesError);
     room.on(RoomEvent.Disconnected, onDisconnected);
+    room.on(RoomEvent.ParticipantConnected, onParticipantConnected);
+    room.on(RoomEvent.ParticipantDisconnected, onParticipantDisconnected);
     room.on(RoomEvent.TrackSubscribed, onTrackSubscribed);
     room.on(RoomEvent.TrackUnsubscribed, onTrackUnsubscribed);
 
@@ -173,6 +221,10 @@ export const CallInterface = forwardRef<
       room.off(RoomEvent.Reconnecting, onReconnecting);
       room.off(RoomEvent.Disconnected, onDisconnected);
       room.off(RoomEvent.MediaDevicesError, onMediaDevicesError);
+      room.off(RoomEvent.ParticipantConnected, onParticipantConnected);
+      room.off(RoomEvent.ParticipantDisconnected, onParticipantDisconnected);
+      room.off(RoomEvent.TrackSubscribed, onTrackSubscribed);
+      room.off(RoomEvent.TrackUnsubscribed, onTrackUnsubscribed);
 
       // Only disconnect if we're actually connected AND not in the middle of connecting
       // (Strict Mode test unmounts/remounts, we don't want to kill active connections)
