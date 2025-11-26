@@ -178,13 +178,15 @@ export async function POST(request: Request) {
       console.log(`  - Transcript segments: ${transcriptSegments.length}`);
       console.log(`  - Interview ID: ${interview.id}`);
       console.log(`  - Visa type: ${interview.visaType}`);
-      
+
       // Check if OpenAI API key is configured
       if (!process.env.OPENAI_API_KEY) {
-        console.error("❌ OPENAI_API_KEY not configured - skipping AI report generation");
+        console.error(
+          "❌ OPENAI_API_KEY not configured - skipping AI report generation"
+        );
       } else {
         console.log("✅ OpenAI API key is configured");
-        
+
         // Format transcript for AI analysis
         const formattedTranscript = transcriptSegments
           .map((segment) => {
@@ -199,50 +201,54 @@ export async function POST(request: Request) {
           })
           .join("\n\n");
 
-        console.log(`  - Formatted transcript length: ${formattedTranscript.length} chars`);
-        console.log(`  - First 200 chars: ${formattedTranscript.substring(0, 200)}...`);
+        console.log(
+          `  - Formatted transcript length: ${formattedTranscript.length} chars`
+        );
+        console.log(
+          `  - First 200 chars: ${formattedTranscript.substring(0, 200)}...`
+        );
 
-        // Generate AI report (async, don't wait for response)
+        // Generate AI report (MUST await in serverless - function terminates otherwise!)
         console.log("📤 Calling generateReport function...");
-        generateReport(
-          formattedTranscript,
-          interview.visaType,
-          `Interview duration: ${duration} seconds`
-        )
-          .then(async (report) => {
-            console.log("✅ AI analysis generated successfully!");
-            console.log(`  - Overall score: ${report.overallScore}`);
-            console.log(`  - Recommendation: ${report.recommendation}`);
-            console.log(`  - Strengths count: ${report.strengths.length}`);
-            console.log(`  - Weaknesses count: ${report.weaknesses.length}`);
-            console.log("💾 Saving report to database...");
+        try {
+          const report = await generateReport(
+            formattedTranscript,
+            interview.visaType,
+            `Interview duration: ${duration} seconds`
+          );
+          
+          console.log("✅ AI analysis generated successfully!");
+          console.log(`  - Overall score: ${report.overallScore}`);
+          console.log(`  - Recommendation: ${report.recommendation}`);
+          console.log(`  - Strengths count: ${report.strengths.length}`);
+          console.log(`  - Weaknesses count: ${report.weaknesses.length}`);
+          console.log("💾 Saving report to database...");
 
-            // Save report to database
-            await prisma.interviewReport.create({
-              data: {
-                interviewId: interview.id,
-                overallScore: report.overallScore,
-                recommendation: report.recommendation,
-                strengths: JSON.stringify(report.strengths),
-                weaknesses: JSON.stringify(report.weaknesses),
-                redFlags: JSON.stringify(report.redFlags),
-                timestampedComments: JSON.stringify(report.timestampedComments),
-                summary: report.summary,
-                generatedAt: new Date(),
-              },
-            });
-
-            console.log("✅ AI report saved successfully to database");
-          })
-          .catch((error) => {
-            console.error("❌ AI report generation failed:");
-            console.error("  - Error type:", error?.constructor?.name);
-            console.error("  - Error message:", error?.message);
-            console.error("  - Full error:", error);
-            if (error?.response) {
-              console.error("  - API response:", error.response);
-            }
+          // Save report to database
+          await prisma.interviewReport.create({
+            data: {
+              interviewId: interview.id,
+              overallScore: report.overallScore,
+              recommendation: report.recommendation,
+              strengths: JSON.stringify(report.strengths),
+              weaknesses: JSON.stringify(report.weaknesses),
+              redFlags: JSON.stringify(report.redFlags),
+              timestampedComments: JSON.stringify(report.timestampedComments),
+              summary: report.summary,
+              generatedAt: new Date(),
+            },
           });
+
+          console.log("✅ AI report saved successfully to database");
+        } catch (error) {
+          console.error("❌ AI report generation failed:");
+          console.error("  - Error type:", error?.constructor?.name);
+          console.error("  - Error message:", error?.message);
+          console.error("  - Full error:", error);
+          if (error?.response) {
+            console.error("  - API response:", error.response);
+          }
+        }
       }
     } else {
       console.warn("⚠️ No transcript segments to analyze - skipping AI report");
