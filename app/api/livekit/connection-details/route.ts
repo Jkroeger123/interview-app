@@ -138,7 +138,7 @@ export async function POST(req: Request) {
     console.log("🎬 API: Starting egress recording...");
     try {
       const egressClient = new EgressClient(LIVEKIT_URL, API_KEY, API_SECRET);
-      
+
       const egressInfo = await egressClient.startRoomCompositeEgress(roomName, {
         file: new EncodedFileOutput({
           filepath: `interviews/${interviewId}.mp4`,
