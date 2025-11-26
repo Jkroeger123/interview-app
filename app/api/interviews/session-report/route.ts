@@ -28,9 +28,14 @@ export async function POST(request: Request) {
   console.log("📥 Request headers:", Object.fromEntries(request.headers));
   try {
     const body = await request.json();
+    console.log("📥 Request body:", JSON.stringify(body, null, 2));
+    
     const { roomName, sessionReport } = body;
 
     console.log("📥 Received session report for room:", roomName);
+    console.log("📥 Session report keys:", Object.keys(sessionReport || {}));
+    console.log("📥 History:", sessionReport?.history);
+    console.log("📥 History items count:", sessionReport?.history?.items?.length || 0);
 
     if (!roomName || !sessionReport) {
       return NextResponse.json(
