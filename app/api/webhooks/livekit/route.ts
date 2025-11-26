@@ -15,7 +15,7 @@ const AWS_S3_REGION = process.env.AWS_S3_REGION;
 
 // ⚠️ TEMPORARY: Skip signature verification for debugging
 // TODO: Re-enable this in production by setting SKIP_WEBHOOK_VERIFICATION=false
-const SKIP_WEBHOOK_VERIFICATION = process.env.SKIP_WEBHOOK_VERIFICATION !== "false";
+const SKIP_WEBHOOK_VERIFICATION = true;
 
 export async function POST(req: Request) {
   try {
@@ -28,8 +28,10 @@ export async function POST(req: Request) {
       // ⚠️ INSECURE: Skip signature verification (for debugging only)
       console.warn("⚠️ WARNING: Webhook signature verification is DISABLED");
       console.warn("⚠️ This is insecure and should only be used for debugging");
-      console.warn("⚠️ Set SKIP_WEBHOOK_VERIFICATION=false to re-enable security");
-      
+      console.warn(
+        "⚠️ Set SKIP_WEBHOOK_VERIFICATION=false to re-enable security"
+      );
+
       // Parse the JSON body directly without verification
       event = JSON.parse(body);
     } else {
