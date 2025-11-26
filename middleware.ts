@@ -4,6 +4,7 @@ const isPublicRoute = createRouteMatcher([
   "/sign-in(.*)",
   "/sign-up(.*)",
   "/api/webhooks(.*)", // All webhooks (Clerk, Ragie, etc.) must be public for external services
+  "/api/interviews/session-report", // Agent session report (called by LiveKit agent, no auth)
 ]);
 
 export default clerkMiddleware(async (auth, request) => {
