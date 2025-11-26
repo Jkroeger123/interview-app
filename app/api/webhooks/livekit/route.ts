@@ -1,11 +1,6 @@
 import { NextResponse } from "next/server";
 import { WebhookReceiver } from "livekit-server-sdk";
-import {
-  getInterviewByRoomName,
-  updateInterviewRecording,
-  updateInterviewStatus,
-} from "@/server/interview-actions";
-import { generateAIReport } from "@/server/report-actions";
+import { prisma } from "@/lib/prisma";
 
 const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY;
 const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET;
@@ -90,15 +85,21 @@ async function handleEgressStarted(event: any) {
 
     console.log("🎬 Egress started:", { roomName, egressId });
 
-    // Get interview by room name
-    const result = await getInterviewByRoomName(roomName);
-    if (!result.success || !result.interview) {
+    // Get interview by room name (direct Prisma call)
+    const interview = await prisma.interview.findUnique({
+      where: { roomName },
+    });
+    
+    if (!interview) {
       console.error("❌ Interview not found for room:", roomName);
       return;
     }
 
-    // Update recording status
-    await updateInterviewRecording(result.interview.id, "recording");
+    // Update recording status (direct Prisma call)
+    await prisma.interview.update({
+      where: { id: interview.id },
+      data: { recordingStatus: "recording" },
+    });
   } catch (error) {
     console.error("❌ Error handling egress_started:", error);
   }
@@ -111,14 +112,26 @@ async function handleEgressUpdated(event: any) {
 
     console.log("🔄 Egress updated:", { roomName, status });
 
-    // Update recording status based on egress status
+    // Update recording status based on egress status (direct Prisma call)
     if (roomName && status) {
-      const result = await getInterviewByRoomName(roomName);
-      if (result.success && result.interview) {
+      const interview = await prisma.interview.findUnique({
+        where: { roomName },
+      });
+      
+      if (interview) {
+        let newStatus: string | null = null;
+        
         if (status === "EGRESS_ACTIVE") {
-          await updateInterviewRecording(result.interview.id, "recording");
+          newStatus = "recording";
         } else if (status === "EGRESS_ENDING") {
-          await updateInterviewRecording(result.interview.id, "processing");
+          newStatus = "processing";
+        }
+        
+        if (newStatus) {
+          await prisma.interview.update({
+            where: { id: interview.id },
+            data: { recordingStatus: newStatus },
+          });
         }
       }
     }
@@ -142,14 +155,17 @@ async function handleEgressEnded(event: any) {
       return;
     }
 
-    // Get interview by room name
-    const result = await getInterviewByRoomName(roomName);
-    if (!result.success || !result.interview) {
+    // Get interview by room name (direct Prisma call)
+    const interview = await prisma.interview.findUnique({
+      where: { roomName },
+    });
+    
+    if (!interview) {
       console.error("❌ Interview not found for room:", roomName);
       return;
     }
 
-    const interviewId = result.interview.id;
+    const interviewId = interview.id;
 
     // Check if egress completed successfully
     if (status === "EGRESS_COMPLETE" && fileResults && fileResults.length > 0) {
@@ -160,36 +176,29 @@ async function handleEgressEnded(event: any) {
 
       console.log("✅ Recording completed:", recordingUrl);
 
-      // Update recording status and URL
-      await updateInterviewRecording(interviewId, "ready", recordingUrl);
+      // Update recording status and URL (direct Prisma call to avoid auth issues)
+      await prisma.interview.update({
+        where: { id: interviewId },
+        data: {
+          recordingStatus: "ready",
+          recordingUrl: recordingUrl,
+        },
+      });
 
-      // Update interview status to completed
-      await updateInterviewStatus(interviewId, "completed");
-
-      // TODO: Extract transcript from LiveKit
-      // For now, we'll need to implement transcript extraction
-      // This might come from LiveKit's transcription feature or agent logs
-
-      // Generate AI report (run in background)
-      generateAIReport(interviewId)
-        .then((reportResult) => {
-          if (reportResult.success) {
-            console.log("✅ AI report generated for interview:", interviewId);
-          } else {
-            console.error(
-              "❌ Failed to generate AI report:",
-              reportResult.error
-            );
-          }
-        })
-        .catch((err) => {
-          console.error("❌ Error generating AI report:", err);
-        });
+      console.log("✅ Recording status updated to ready");
+      
+      // NOTE: AI report generation is handled by the session-report endpoint
+      // when the agent sends the transcript. No need to generate it here.
     } else {
       // Egress failed
       console.error("❌ Egress failed:", error || "Unknown error");
-      await updateInterviewRecording(interviewId, "failed");
-      await updateInterviewStatus(interviewId, "failed");
+      await prisma.interview.update({
+        where: { id: interviewId },
+        data: {
+          recordingStatus: "failed",
+          status: "failed",
+        },
+      });
     }
   } catch (error) {
     console.error("❌ Error handling egress_ended:", error);
