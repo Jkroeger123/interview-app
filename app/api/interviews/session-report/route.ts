@@ -1,10 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import {
-  getInterviewByRoomName,
-  updateInterviewStatus,
-} from "@/server/interview-actions";
-import { generateAIReport } from "@/server/report-actions";
+import { generateReport } from "@/lib/openai-report-generator";
 
 /**
  * POST /api/interviews/session-report
@@ -43,9 +39,12 @@ export async function POST(request: Request) {
       );
     }
 
-    // Get interview by room name
-    const interviewResult = await getInterviewByRoomName(roomName);
-    if (!interviewResult.success || !interviewResult.interview) {
+    // Get interview by room name (direct Prisma call, no auth needed)
+    const interview = await prisma.interview.findUnique({
+      where: { roomName },
+    });
+
+    if (!interview) {
       console.error("❌ Interview not found for room:", roomName);
       return NextResponse.json(
         { error: "Interview not found" },
@@ -53,7 +52,6 @@ export async function POST(request: Request) {
       );
     }
 
-    const interview = interviewResult.interview;
     console.log("✅ Found interview:", interview.id);
 
     // Extract conversation history from session report
@@ -66,32 +64,46 @@ export async function POST(request: Request) {
     const transcriptSegments = [];
 
     for (const item of items) {
-      // Each item represents a turn in the conversation
+      // Skip non-message items (function calls, etc.)
+      if (item.type !== "message") continue;
+
       const role = item.role; // "user" or "assistant"
       const content = item.content;
 
       if (!content || content.length === 0) continue;
 
-      // Content is an array of content blocks
+      // Content can be:
+      // 1. Array of strings: ['Hello']
+      // 2. Array of objects: [{ type: 'text', text: 'Hello' }]
+      
+      let text = "";
+      
+      // Handle both formats
       for (const block of content) {
-        if (block.type === "transcript" || block.type === "text") {
-          // Extract text and timing info
-          const text = block.transcript || block.text || "";
-          if (!text.trim()) continue;
-
-          // Timing information (if available)
-          const startTime = block.start_time || 0;
-          const endTime = block.end_time || startTime;
-
-          transcriptSegments.push({
-            interviewId: interview.id,
-            speaker: role === "user" ? "user" : "agent",
-            text: text.trim(),
-            startTime: startTime,
-            endTime: endTime,
-          });
+        if (typeof block === "string") {
+          // Simple string format
+          text += block + " ";
+        } else if (typeof block === "object") {
+          // Object format with type/text/transcript fields
+          const blockText = block.transcript || block.text || "";
+          text += blockText + " ";
         }
       }
+
+      text = text.trim();
+      if (!text) continue;
+
+      // Extract timing if available
+      const startTime = item.start_time || 0;
+      const endTime = item.end_time || startTime;
+      
+      transcriptSegments.push({
+        interviewId: interview.id,
+        speaker: role === "user" ? "user" : "agent",
+        text: text,
+        startTime: startTime,
+        endTime: endTime,
+      });
     }
 
     console.log(
@@ -116,23 +128,64 @@ export async function POST(request: Request) {
       (endTime.getTime() - startTime.getTime()) / 1000
     );
 
-    // Update interview status
-    await updateInterviewStatus(interview.id, "completed", endTime, duration);
+    // Update interview status (direct Prisma call)
+    await prisma.interview.update({
+      where: { id: interview.id },
+      data: {
+        status: "completed",
+        endedAt: endTime,
+        duration: duration,
+      },
+    });
     console.log("✅ Interview marked as completed");
 
-    // Trigger AI report generation (async, don't wait)
-    console.log("🤖 Triggering AI report generation...");
-    generateAIReport(interview.id)
-      .then((result) => {
-        if (result.success) {
-          console.log("✅ AI report generated successfully");
-        } else {
-          console.error("❌ AI report generation failed:", result.error);
-        }
-      })
-      .catch((error) => {
-        console.error("❌ AI report generation error:", error);
-      });
+    // Generate AI report if we have transcript segments
+    if (transcriptSegments.length > 0) {
+      console.log("🤖 Generating AI report...");
+      
+      // Format transcript for AI analysis
+      const formattedTranscript = transcriptSegments
+        .map((segment) => {
+          const minutes = Math.floor(segment.startTime / 60);
+          const secs = Math.floor(segment.startTime % 60);
+          const timestamp = `${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+          const speakerLabel = segment.speaker === "agent" ? "Officer" : "Applicant";
+          return `[${timestamp}] ${speakerLabel}: ${segment.text}`;
+        })
+        .join("\n\n");
+
+      // Generate AI report (async, don't wait for response)
+      generateReport(
+        formattedTranscript,
+        interview.visaType,
+        `Interview duration: ${duration} seconds`
+      )
+        .then(async (report) => {
+          console.log("✅ AI analysis generated, saving to database...");
+          
+          // Save report to database
+          await prisma.interviewReport.create({
+            data: {
+              interviewId: interview.id,
+              overallScore: report.overallScore,
+              recommendation: report.recommendation,
+              strengths: JSON.stringify(report.strengths),
+              weaknesses: JSON.stringify(report.weaknesses),
+              redFlags: JSON.stringify(report.redFlags),
+              timestampedComments: JSON.stringify(report.timestampedComments),
+              summary: report.summary,
+              generatedAt: new Date(),
+            },
+          });
+          
+          console.log("✅ AI report saved successfully");
+        })
+        .catch((error) => {
+          console.error("❌ AI report generation error:", error);
+        });
+    } else {
+      console.warn("⚠️ No transcript segments to analyze");
+    }
 
     return NextResponse.json(
       {
