@@ -75,9 +75,9 @@ export async function POST(request: Request) {
       // Content can be:
       // 1. Array of strings: ['Hello']
       // 2. Array of objects: [{ type: 'text', text: 'Hello' }]
-      
+
       let text = "";
-      
+
       // Handle both formats
       for (const block of content) {
         if (typeof block === "string") {
@@ -96,7 +96,7 @@ export async function POST(request: Request) {
       // Extract timing if available
       const startTime = item.start_time || 0;
       const endTime = item.end_time || startTime;
-      
+
       transcriptSegments.push({
         interviewId: interview.id,
         speaker: role === "user" ? "user" : "agent",
@@ -142,14 +142,17 @@ export async function POST(request: Request) {
     // Generate AI report if we have transcript segments
     if (transcriptSegments.length > 0) {
       console.log("🤖 Generating AI report...");
-      
+
       // Format transcript for AI analysis
       const formattedTranscript = transcriptSegments
         .map((segment) => {
           const minutes = Math.floor(segment.startTime / 60);
           const secs = Math.floor(segment.startTime % 60);
-          const timestamp = `${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
-          const speakerLabel = segment.speaker === "agent" ? "Officer" : "Applicant";
+          const timestamp = `${minutes.toString().padStart(2, "0")}:${secs
+            .toString()
+            .padStart(2, "0")}`;
+          const speakerLabel =
+            segment.speaker === "agent" ? "Officer" : "Applicant";
           return `[${timestamp}] ${speakerLabel}: ${segment.text}`;
         })
         .join("\n\n");
@@ -162,7 +165,7 @@ export async function POST(request: Request) {
       )
         .then(async (report) => {
           console.log("✅ AI analysis generated, saving to database...");
-          
+
           // Save report to database
           await prisma.interviewReport.create({
             data: {
@@ -177,7 +180,7 @@ export async function POST(request: Request) {
               generatedAt: new Date(),
             },
           });
-          
+
           console.log("✅ AI report saved successfully");
         })
         .catch((error) => {
