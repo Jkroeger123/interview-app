@@ -53,9 +53,10 @@ export function buildAgentConfig(
 
   // Define high-level question topics based on focus areas
   // Agent will use get_relevant_questions tool to fetch specific questions
-  const questionTopics = focusAreaLabels.length > 0 
-    ? focusAreaLabels 
-    : visaType.focusAreas.map(area => area.label);
+  const questionTopics =
+    focusAreaLabels.length > 0
+      ? focusAreaLabels
+      : visaType.focusAreas.map((area) => area.label);
 
   // Build Ragie partition names
   // Global partition: visa-{visaType} (for reference documents like visa requirements)
