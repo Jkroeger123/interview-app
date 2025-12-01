@@ -31,6 +31,7 @@ export function AvatarDisplay({
   const [videoPlaying, setVideoPlaying] = useState(false);
   const [agentHasLeft, setAgentHasLeft] = useState(false);
   const videoReadyRef = useRef(false);
+  const agentEverJoinedRef = useRef(false); // Track if agent ever actually joined
   const [tavusVideoTrack, setTavusVideoTrack] = useState<any>(null);
 
   // Look for Tavus participant video track
@@ -196,13 +197,21 @@ export function AvatarDisplay({
     }
   }, [videoTrack, onVideoReady]);
 
-  // Detect when agent leaves after having joined
+  // Track when agent actually joins (has video or is in active state)
   useEffect(() => {
-    if (videoPlaying && !videoTrack && !agent) {
-      // Agent was there, now they're gone
+    if ((videoTrack || agent) && (agentState === "listening" || agentState === "speaking" || agentState === "thinking")) {
+      agentEverJoinedRef.current = true;
+    }
+  }, [videoTrack, agent, agentState]);
+
+  // Detect when agent leaves ONLY after they had joined
+  useEffect(() => {
+    if (agentEverJoinedRef.current && !videoTrack && !agent && agentState === "disconnected") {
+      // Agent was there and active, now they're gone
+      console.log("👋 Agent has left the call");
       setAgentHasLeft(true);
     }
-  }, [videoTrack, agent, videoPlaying]);
+  }, [videoTrack, agent, agentState]);
 
   if (!sessionStarted) {
     return null;

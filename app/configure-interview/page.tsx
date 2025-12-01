@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import { ChevronLeft, ChevronRight, Coins } from "lucide-react";
 import { useEffect } from "react";
+import { LanguageSelector } from "@/components/interview/language-selector";
 
 export default function ConfigureInterviewPage() {
   const router = useRouter();
@@ -97,6 +98,9 @@ export default function ConfigureInterviewPage() {
                 </p>
               )}
             </div>
+
+            {/* Interview Language */}
+            <LanguageSelector />
 
             {/* Focus Areas */}
             <div>

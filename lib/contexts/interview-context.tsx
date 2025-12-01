@@ -18,6 +18,7 @@ export interface InterviewConfiguration {
   duration: InterviewDuration;
   focusAreas: string[];
   documents: UploadedDocument[];
+  interviewLanguage: string; // ISO 639-1 language code (e.g., "en", "es", "zh")
 }
 
 interface InterviewContextType {
@@ -27,6 +28,7 @@ interface InterviewContextType {
   toggleFocusArea: (areaId: string) => void;
   addDocument: (document: UploadedDocument) => void;
   removeDocument: (documentId: string) => void;
+  setInterviewLanguage: (language: string) => void;
   resetConfiguration: () => void;
 }
 
@@ -39,6 +41,7 @@ const defaultConfiguration: InterviewConfiguration = {
   duration: "quick",
   focusAreas: [],
   documents: [],
+  interviewLanguage: "en", // Default to English
 };
 
 export function InterviewProvider({ children }: { children: ReactNode }) {
@@ -82,6 +85,10 @@ export function InterviewProvider({ children }: { children: ReactNode }) {
     }));
   };
 
+  const setInterviewLanguage = (language: string) => {
+    setConfiguration((prev) => ({ ...prev, interviewLanguage: language }));
+  };
+
   const resetConfiguration = () => {
     setConfiguration(defaultConfiguration);
   };
@@ -95,6 +102,7 @@ export function InterviewProvider({ children }: { children: ReactNode }) {
         toggleFocusArea,
         addDocument,
         removeDocument,
+        setInterviewLanguage,
         resetConfiguration,
       }}
     >

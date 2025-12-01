@@ -13,6 +13,7 @@ export interface AgentConfig {
   questionBank: string[]; // Full bank for agent's get_relevant_questions tool
   ragieGlobalPartition: string; // Global reference docs: visa-{type}
   agentPromptContext: string;
+  interviewLanguage: string; // ISO 639-1 language code (e.g., "en", "es", "zh")
   userInfo: {
     name: string;
     userId: string;
@@ -74,6 +75,7 @@ export function buildAgentConfig(
     questionBank, // Still included for agent's get_relevant_questions tool
     ragieGlobalPartition, // Global reference documents
     agentPromptContext: visaType.agentPromptContext,
+    interviewLanguage: configuration.interviewLanguage || "en", // Default to English
     userInfo,
   };
 }
