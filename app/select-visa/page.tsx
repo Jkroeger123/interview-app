@@ -30,7 +30,7 @@ export default function SelectVisaPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {Object.values(VISA_TYPES).map((visaType) => {
           const Icon = visaType.icon;
-          const isEnabled = visaType.id === "student"; // Only enable F-1 Student visa
+          const isEnabled = true; // All visa types enabled - each has complete context
           
           return (
             <Card
@@ -60,11 +60,6 @@ export default function SelectVisaPage() {
                     {visaType.code}
                   </p>
                   <p className="text-muted-foreground">{visaType.description}</p>
-                  {!isEnabled && (
-                    <p className="text-xs text-muted-foreground mt-2 italic">
-                      Coming soon
-                    </p>
-                  )}
                 </div>
               </div>
             </Card>

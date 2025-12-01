@@ -51,16 +51,11 @@ export function buildAgentConfig(
   // Get question bank for this visa type (for agent's tool to query)
   const questionBank = getQuestionBank(configuration.visaType);
 
-  // Define high-level question topics (sent in prompt, not all questions)
-  const questionTopics = [
-    "Academic Purpose & Program Fit",
-    "Financial Ability & Sponsorship",
-    "Ties to Home Country & Post-Graduation Plans",
-    "Immigration History & Intent",
-    "English Proficiency",
-    "Documentation & Consistency",
-    "Work Intentions (OPT/CPT)",
-  ];
+  // Define high-level question topics based on focus areas
+  // Agent will use get_relevant_questions tool to fetch specific questions
+  const questionTopics = focusAreaLabels.length > 0 
+    ? focusAreaLabels 
+    : visaType.focusAreas.map(area => area.label);
 
   // Build Ragie partition names
   // Global partition: visa-{visaType} (for reference documents like visa requirements)
