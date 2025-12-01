@@ -199,14 +199,24 @@ export function AvatarDisplay({
 
   // Track when agent actually joins (has video or is in active state)
   useEffect(() => {
-    if ((videoTrack || agent) && (agentState === "listening" || agentState === "speaking" || agentState === "thinking")) {
+    if (
+      (videoTrack || agent) &&
+      (agentState === "listening" ||
+        agentState === "speaking" ||
+        agentState === "thinking")
+    ) {
       agentEverJoinedRef.current = true;
     }
   }, [videoTrack, agent, agentState]);
 
   // Detect when agent leaves ONLY after they had joined
   useEffect(() => {
-    if (agentEverJoinedRef.current && !videoTrack && !agent && agentState === "disconnected") {
+    if (
+      agentEverJoinedRef.current &&
+      !videoTrack &&
+      !agent &&
+      agentState === "disconnected"
+    ) {
       // Agent was there and active, now they're gone
       console.log("👋 Agent has left the call");
       setAgentHasLeft(true);
