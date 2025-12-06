@@ -29,6 +29,7 @@ export async function POST(req: Request) {
     // Check authentication
     const user = await currentUser();
     if (!user) {
+      console.warn("⚠️ API: Unauthorized access attempt");
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
@@ -43,12 +44,20 @@ export async function POST(req: Request) {
     }
 
     // Parse agent configuration from request body
-    const body = await req.json();
+    let body;
+    try {
+      body = await req.json();
+    } catch (error) {
+      console.error("❌ API: Invalid JSON in request body");
+      return new NextResponse("Invalid request body", { status: 400 });
+    }
+
     const agentName: string = body?.room_config?.agents?.[0]?.agent_name;
     const agentConfig = body?.agent_config; // Agent configuration for interview
     const sessionId: string = body?.session_id; // Session ID from client for stable room naming
 
     console.log("🟢 API: Received connection request");
+    console.log("🟢 API: User:", user.id);
     console.log("🟢 API: Agent name:", agentName);
     console.log("🟢 API: Agent config:", agentConfig ? "present" : "missing");
     console.log("🟢 API: Session ID:", sessionId);
@@ -62,19 +71,45 @@ export async function POST(req: Request) {
     const roomService = new RoomServiceClient(LIVEKIT_URL, API_KEY, API_SECRET);
 
     // Get user's internal ID from database FIRST (needed for interview creation)
+    // If user doesn't exist, create them (fallback for webhook failures/delays)
     let userId: string;
     try {
-      const dbUser = await prisma.user.findUnique({
+      let dbUser = await prisma.user.findUnique({
         where: { clerkId: participantIdentity },
         select: { id: true },
       });
+      
       if (!dbUser) {
-        throw new Error("User not found in database");
+        console.warn("⚠️ API: User not in DB, creating from Clerk data...");
+        
+        // Extract email from Clerk user
+        const email = user.emailAddresses[0]?.emailAddress;
+        if (!email) {
+          throw new Error("No email found in Clerk user data");
+        }
+        
+        // Auto-create user (webhook missed or delayed)
+        // Use upsert to prevent duplicate key errors if multiple requests arrive simultaneously
+        dbUser = await prisma.user.upsert({
+          where: { clerkId: participantIdentity },
+          update: {}, // No update needed, just return existing
+          create: {
+            clerkId: participantIdentity,
+            email,
+            firstName: user.firstName || null,
+            lastName: user.lastName || null,
+            imageUrl: user.imageUrl || null,
+          },
+          select: { id: true },
+        });
+        
+        console.log("✅ API: Auto-created user:", dbUser.id);
       }
+      
       userId = dbUser.id;
     } catch (error) {
-      console.error("❌ API: Error fetching user:", error);
-      return new NextResponse("User not found", { status: 404 });
+      console.error("❌ API: Error with user:", error);
+      return new NextResponse("Failed to get or create user", { status: 500 });
     }
 
     // Always create a fresh room for each interview
@@ -196,10 +231,22 @@ export async function POST(req: Request) {
 
     return NextResponse.json(data, { headers });
   } catch (error) {
+    // Comprehensive error logging for production debugging
+    console.error("❌ API: Connection request failed");
+    console.error("❌ API: Error details:", error);
+    
     if (error instanceof Error) {
-      console.error(error);
-      return new NextResponse(error.message, { status: 500 });
+      console.error("❌ API: Error message:", error.message);
+      console.error("❌ API: Error stack:", error.stack);
+      
+      // Return user-friendly error message (don't leak internals)
+      return new NextResponse(
+        `Failed to create interview session: ${error.message}`,
+        { status: 500 }
+      );
     }
+    
+    return new NextResponse("An unexpected error occurred", { status: 500 });
   }
 }
 
