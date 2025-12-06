@@ -78,16 +78,16 @@ export async function POST(req: Request) {
         where: { clerkId: participantIdentity },
         select: { id: true },
       });
-      
+
       if (!dbUser) {
         console.warn("⚠️ API: User not in DB, creating from Clerk data...");
-        
+
         // Extract email from Clerk user
         const email = user.emailAddresses[0]?.emailAddress;
         if (!email) {
           throw new Error("No email found in Clerk user data");
         }
-        
+
         // Auto-create user (webhook missed or delayed)
         // Use upsert to prevent duplicate key errors if multiple requests arrive simultaneously
         dbUser = await prisma.user.upsert({
@@ -102,10 +102,10 @@ export async function POST(req: Request) {
           },
           select: { id: true },
         });
-        
+
         console.log("✅ API: Auto-created user:", dbUser.id);
       }
-      
+
       userId = dbUser.id;
     } catch (error) {
       console.error("❌ API: Error with user:", error);
@@ -234,18 +234,18 @@ export async function POST(req: Request) {
     // Comprehensive error logging for production debugging
     console.error("❌ API: Connection request failed");
     console.error("❌ API: Error details:", error);
-    
+
     if (error instanceof Error) {
       console.error("❌ API: Error message:", error.message);
       console.error("❌ API: Error stack:", error.stack);
-      
+
       // Return user-friendly error message (don't leak internals)
       return new NextResponse(
         `Failed to create interview session: ${error.message}`,
         { status: 500 }
       );
     }
-    
+
     return new NextResponse("An unexpected error occurred", { status: 500 });
   }
 }
