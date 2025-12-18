@@ -15,7 +15,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ChevronLeft, ChevronRight, Coins } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
+import { ChevronLeft, ChevronRight, Coins, Info } from "lucide-react";
 import { useEffect } from "react";
 import { LanguageSelector } from "@/components/interview/language-selector";
 
@@ -70,12 +77,34 @@ export default function ConfigureInterviewPage() {
           <div className="space-y-8">
             {/* Interview Duration */}
             <div>
-              <Label
-                htmlFor="duration"
-                className="text-lg font-semibold mb-3 block"
-              >
-                Interview Duration
-              </Label>
+              <div className="flex items-center gap-2 mb-3">
+                <Label
+                  htmlFor="duration"
+                  className="text-lg font-semibold"
+                >
+                  Interview Duration
+                </Label>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="size-4 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="max-w-xs">
+                      <div className="space-y-2 text-sm">
+                        <p>
+                          <strong>Quick (5 min):</strong> Brief overview of key topics - ideal for testing specific areas
+                        </p>
+                        <p>
+                          <strong>Standard (10 min):</strong> Balanced practice covering main questions - recommended for most users
+                        </p>
+                        <p>
+                          <strong>Comprehensive (15 min):</strong> In-depth interview covering all topics - best for thorough preparation
+                        </p>
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
               <Select
                 value={configuration.duration}
                 onValueChange={(value) => setDuration(value as any)}
@@ -86,7 +115,14 @@ export default function ConfigureInterviewPage() {
                 <SelectContent>
                   {INTERVIEW_DURATIONS.map((duration) => (
                     <SelectItem key={duration.value} value={duration.value}>
-                      {duration.label} ({duration.credits} credits)
+                      <div className="flex items-center gap-2">
+                        <span>{duration.label} ({duration.credits} credits)</span>
+                        {duration.value === "standard" && (
+                          <Badge variant="secondary" className="text-xs">
+                            Recommended
+                          </Badge>
+                        )}
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>

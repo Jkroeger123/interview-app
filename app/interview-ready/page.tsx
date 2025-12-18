@@ -11,6 +11,8 @@ import { Navbar } from "@/components/navbar";
 import { Building2, Clock, Target, ChevronLeft } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { buildAgentConfig } from "@/lib/agent-config-builder";
+import { MicrophoneTest } from "@/components/interview/microphone-test";
+import { PrepVideo } from "@/components/interview/prep-video";
 import {
   CallInterface,
   type CallInterfaceHandle,
@@ -24,6 +26,7 @@ export default function InterviewReadyPage() {
   const { configuration } = useInterview();
   const { user } = useUser();
   const [interviewStarted, setInterviewStarted] = useState(false);
+  const [micTestPassed, setMicTestPassed] = useState(false);
   const callInterfaceRef = useRef<CallInterfaceHandle>(null);
 
   // Documents not used anymore - removed from flow
@@ -192,6 +195,12 @@ export default function InterviewReadyPage() {
             </Card>
           )}
 
+          {/* Preparation Video */}
+          <PrepVideo visaType={configuration.visaType} />
+
+          {/* Microphone Test */}
+          <MicrophoneTest onTestComplete={setMicTestPassed} />
+
           {/* Important Notes */}
           <Card className="p-6 bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
             <h3 className="font-semibold mb-3">Before You Begin:</h3>
@@ -220,13 +229,21 @@ export default function InterviewReadyPage() {
             <ChevronLeft className="size-4 mr-2" />
             Previous
           </Button>
-          <Button
-            onClick={handleStartInterview}
-            size="lg"
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            Enter Interview Room
-          </Button>
+          <div className="flex flex-col items-end gap-2">
+            {!micTestPassed && (
+              <p className="text-sm text-muted-foreground">
+                Complete microphone test to continue
+              </p>
+            )}
+            <Button
+              onClick={handleStartInterview}
+              size="lg"
+              className="bg-blue-600 hover:bg-blue-700"
+              disabled={!micTestPassed}
+            >
+              Enter Interview Room
+            </Button>
+          </div>
         </div>
       </div>
     </>

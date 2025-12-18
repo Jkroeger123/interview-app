@@ -12,6 +12,7 @@ import { RoomConfiguration } from "@livekit/protocol";
 import type { ConnectionDetails } from "@/lib/types/livekit";
 import { createInterview } from "@/server/interview-actions";
 import { prisma } from "@/lib/prisma";
+import { INTERVIEW_DURATIONS } from "@/lib/visa-types";
 
 const API_KEY = process.env.LIVEKIT_API_KEY;
 const API_SECRET = process.env.LIVEKIT_API_SECRET;
@@ -70,13 +71,14 @@ export async function POST(req: Request) {
     // Create room service client
     const roomService = new RoomServiceClient(LIVEKIT_URL, API_KEY, API_SECRET);
 
-    // Get user's internal ID from database FIRST (needed for interview creation)
+    // Get user's internal ID and credits from database FIRST
     // If user doesn't exist, create them (fallback for webhook failures/delays)
     let userId: string;
+    let userCredits: number;
     try {
       let dbUser = await prisma.user.findUnique({
         where: { clerkId: participantIdentity },
-        select: { id: true },
+        select: { id: true, credits: true },
       });
 
       if (!dbUser) {
@@ -99,18 +101,50 @@ export async function POST(req: Request) {
             firstName: user.firstName || null,
             lastName: user.lastName || null,
             imageUrl: user.imageUrl || null,
+            credits: 0, // New users start with 0 credits
           },
-          select: { id: true },
+          select: { id: true, credits: true },
         });
 
         console.log("✅ API: Auto-created user:", dbUser.id);
       }
 
       userId = dbUser.id;
+      userCredits = dbUser.credits;
     } catch (error) {
       console.error("❌ API: Error with user:", error);
       return new NextResponse("Failed to get or create user", { status: 500 });
     }
+
+    // Check credits BEFORE creating room/interview (but don't deduct yet!)
+    // Determine credits planned based on interview duration
+    const duration = agentConfig?.duration || "standard"; // Default to standard
+    const selectedDuration = INTERVIEW_DURATIONS.find((d) => d.value === duration);
+    const creditsPlanned = selectedDuration?.credits || 10; // Default to 10 credits
+
+    console.log(
+      `💳 API: Credits check - Planned: ${creditsPlanned}, Available: ${userCredits}`
+    );
+
+    // Check if user has enough credits (must have credits to start)
+    if (userCredits < creditsPlanned) {
+      console.warn(
+        `⚠️ API: Insufficient credits (need ${creditsPlanned}, have ${userCredits})`
+      );
+      return NextResponse.json(
+        {
+          error: "Insufficient credits",
+          required: creditsPlanned,
+          available: userCredits,
+          message: `You need ${creditsPlanned} credits for this interview, but only have ${userCredits}. Please purchase more credits.`,
+        },
+        { status: 402 } // 402 Payment Required
+      );
+    }
+
+    console.log(
+      `✅ API: Credit check passed. Credits will be deducted after interview based on success.`
+    );
 
     // Always create a fresh room for each interview
     // Use session ID from client for stable room naming (useful for debugging)
@@ -121,20 +155,38 @@ export async function POST(req: Request) {
 
     // Create interview record BEFORE room (so we have the ID for auto-egress)
     const visaType = agentConfig?.visaType || "student";
-    const interviewResult = await createInterview(
-      userId,
-      participantIdentity,
-      roomName,
-      visaType
-    );
+    
+    // Create interview with creditsPlanned (not deducted yet!)
+    let interviewId: string;
+    try {
+      // Calculate expiration date (7 days from now)
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7);
 
-    if (!interviewResult.success || !interviewResult.interview) {
-      console.error("❌ API: Failed to create interview record");
+      const interview = await prisma.interview.create({
+        data: {
+          userId,
+          clerkId: participantIdentity,
+          roomName,
+          visaType,
+          creditsPlanned, // Store planned credits
+          creditsDeducted: null, // Will be set after interview completion
+          endedBy: null, // Will be set when interview ends
+          expiresAt,
+          status: "in_progress",
+          recordingStatus: "pending",
+          transcriptStatus: "pending",
+        },
+      });
+
+      interviewId = interview.id;
+      console.log(
+        `✅ API: Created interview record: ${interviewId} (${creditsPlanned} credits planned, will charge after completion)`
+      );
+    } catch (error) {
+      console.error("❌ API: Failed to create interview:", error);
       return new NextResponse("Failed to create interview", { status: 500 });
     }
-
-    const interviewId = interviewResult.interview.id;
-    console.log("✅ API: Created interview record:", interviewId);
 
     if (agentConfig) {
       try {

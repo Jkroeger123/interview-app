@@ -33,6 +33,8 @@ export default async function ReportPage({ params }: PageProps) {
   }
 
   const interview = interviewResult.interview;
+  
+  // Note: Expired interviews are automatically deleted, so if we reach here, the interview exists
 
   // Fetch report data
   const reportResult = await getReportByInterviewId(id);

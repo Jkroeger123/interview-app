@@ -1,6 +1,14 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generateReport } from "@/lib/openai-report-generator";
+import { sendReportReadyEmail } from "@/lib/email";
+import { VISA_TYPES } from "@/lib/visa-types";
+import {
+  classifyInterviewSuccess,
+  buildTranscriptFromSegments,
+  calculateTranscriptStats,
+  type InterviewMetadata,
+} from "@/lib/interview-classifier";
 
 /**
  * POST /api/interviews/session-report
@@ -30,7 +38,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     console.log("📥 Request body:", JSON.stringify(body, null, 2));
 
-    const { roomName, sessionReport, recordingInfo } = body;
+    const { roomName, sessionReport, recordingInfo, endedBy } = body;
 
     console.log("📥 Received session report for room:", roomName);
     console.log("📥 Session report keys:", Object.keys(sessionReport || {}));
@@ -39,6 +47,7 @@ export async function POST(request: Request) {
       "📥 History items count:",
       sessionReport?.history?.items?.length || 0
     );
+    console.log("📥 Ended by:", endedBy || "unknown");
 
     if (recordingInfo) {
       console.log("📹 Recording info received:", recordingInfo);
@@ -54,6 +63,15 @@ export async function POST(request: Request) {
     // Get interview by room name (direct Prisma call, no auth needed)
     const interview = await prisma.interview.findUnique({
       where: { roomName },
+      include: {
+        user: {
+          select: {
+            email: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
     });
 
     if (!interview) {
@@ -145,6 +163,7 @@ export async function POST(request: Request) {
       status: "completed",
       endedAt: endTime,
       duration: duration,
+      endedBy: endedBy || interview.endedBy || "system", // Use from agent, fallback to existing or "system"
     };
 
     // If agent provided recording info, update it
@@ -168,8 +187,122 @@ export async function POST(request: Request) {
       data: updateData,
     });
     console.log("✅ Interview marked as completed");
+    console.log(`✅ Ended by: ${updateData.endedBy}`);
     if (recordingInfo?.expectedRecordingUrl) {
       console.log("✅ Recording URL set (will be ready when egress completes)");
+    }
+
+    // CREDIT DEDUCTION: Classify and charge for successful interviews
+    if (interview.creditsPlanned && interview.creditsPlanned > 0) {
+      console.log("💳 Starting credit classification process...");
+      console.log(`💳 Planned credits: ${interview.creditsPlanned}`);
+      console.log(`💳 Ended by: ${interview.endedBy || "unknown"}`);
+
+      try {
+        // Build transcript text from segments
+        const transcriptText = transcriptSegments.length > 0
+          ? buildTranscriptFromSegments(
+              transcriptSegments.map((s: any) => ({
+                speaker: s.speaker,
+                text: s.text,
+              }))
+            )
+          : "";
+
+        const transcriptStats = calculateTranscriptStats(transcriptText);
+
+        // Prepare metadata for classification
+        const metadata: InterviewMetadata = {
+          interviewId: interview.id,
+          plannedDurationMinutes: interview.creditsPlanned, // 1 credit = 1 minute
+          actualDurationSeconds: duration,
+          endedBy: interview.endedBy,
+          transcriptWordCount: transcriptStats.wordCount,
+          transcriptTurnCount: transcriptStats.turnCount,
+        };
+
+        // Classify interview success
+        const classification = await classifyInterviewSuccess(
+          transcriptText,
+          metadata
+        );
+
+        console.log("🤖 Classification result:", classification);
+
+        if (classification.shouldCharge) {
+          // Deduct credits in a transaction
+          console.log(`💰 Charging ${interview.creditsPlanned} credits...`);
+
+          await prisma.$transaction(async (tx) => {
+            // Get user's current balance
+            const user = await tx.user.findUnique({
+              where: { id: interview.userId },
+              select: { credits: true },
+            });
+
+            if (!user) {
+              throw new Error("User not found");
+            }
+
+            // Deduct credits
+            const updatedUser = await tx.user.update({
+              where: { id: interview.userId },
+              data: { credits: { decrement: interview.creditsPlanned } },
+            });
+
+            // Update interview with deduction details
+            await tx.interview.update({
+              where: { id: interview.id },
+              data: {
+                creditsDeducted: interview.creditsPlanned,
+                chargeDecision: "charged",
+                chargeReason: classification.reason,
+              },
+            });
+
+            // Create ledger entry
+            await tx.creditLedger.create({
+              data: {
+                userId: interview.userId,
+                amount: -interview.creditsPlanned,
+                balance: updatedUser.credits,
+                type: "deduction",
+                description: `Interview: ${interview.visaType} (${interview.creditsPlanned} min) - ${classification.reason}`,
+                referenceId: interview.id,
+              },
+            });
+
+            console.log(`✅ Charged ${interview.creditsPlanned} credits. New balance: ${updatedUser.credits}`);
+          });
+        } else {
+          // Not charging - interview was not successful
+          console.log(`🎁 NOT charging - ${classification.reason}`);
+
+          await prisma.interview.update({
+            where: { id: interview.id },
+            data: {
+              creditsDeducted: 0,
+              chargeDecision: "not_charged",
+              chargeReason: classification.reason,
+            },
+          });
+
+          console.log("✅ Interview marked as not charged");
+        }
+      } catch (error) {
+        console.error("❌ Error during credit classification:", error);
+        // Don't fail the whole request - mark as error and continue
+        await prisma.interview.update({
+          where: { id: interview.id },
+          data: {
+            creditsDeducted: null,
+            chargeDecision: "not_charged",
+            chargeReason: `Classification error: ${error instanceof Error ? error.message : "Unknown error"}`,
+          },
+        });
+      }
+    } else {
+      console.log("⏭️  No credits planned for this interview, skipping deduction");
     }
 
     // Generate AI report if we have transcript segments
@@ -225,7 +358,7 @@ export async function POST(request: Request) {
           console.log("💾 Saving report to database...");
 
           // Save report to database
-          await prisma.interviewReport.create({
+          const savedReport = await prisma.interviewReport.create({
             data: {
               interviewId: interview.id,
               overallScore: report.overallScore,
@@ -240,6 +373,40 @@ export async function POST(request: Request) {
           });
 
           console.log("✅ AI report saved successfully to database");
+
+          // Send email notification that report is ready
+          try {
+            console.log("📧 Sending report ready email to:", interview.user.email);
+            
+            // Get visa type name
+            const visaTypeData = VISA_TYPES[interview.visaType as keyof typeof VISA_TYPES];
+            const visaTypeName = visaTypeData 
+              ? `${visaTypeData.name} (${visaTypeData.code})` 
+              : interview.visaType;
+
+            const emailResult = await sendReportReadyEmail({
+              to: interview.user.email,
+              userName: interview.user.firstName || "there",
+              visaType: visaTypeName,
+              interviewDate: interview.startedAt.toLocaleDateString("en-US", {
+                month: "long",
+                day: "numeric",
+                year: "numeric",
+              }),
+              interviewId: interview.id,
+              overallScore: savedReport.overallScore,
+              recommendation: savedReport.recommendation,
+            });
+
+            if (emailResult.success) {
+              console.log("✅ Report ready email sent successfully:", emailResult.messageId);
+            } else {
+              console.error("⚠️ Failed to send report ready email:", emailResult.error);
+            }
+          } catch (emailError) {
+            console.error("❌ Error sending report ready email:", emailError);
+            // Don't fail the whole request if email fails - report is already saved
+          }
         } catch (error: any) {
           console.error("❌ AI report generation failed:");
           console.error("  - Error type:", error?.constructor?.name);

@@ -1,6 +1,7 @@
 import { UserButton } from "@clerk/nextjs";
 import Link from "next/link";
 import { FileText, History } from "lucide-react";
+import { CreditBalanceWidget } from "@/components/credits/credit-balance-widget";
 
 export function Navbar() {
   return (
@@ -25,6 +26,7 @@ export function Navbar() {
             <History className="w-4 h-4" />
             Interview History
           </Link>
+          <CreditBalanceWidget />
           <UserButton />
         </div>
       </div>

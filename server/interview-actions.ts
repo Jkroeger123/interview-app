@@ -23,6 +23,10 @@ export async function createInterview(
   visaType: string
 ) {
   try {
+    // Set expiration to 7 days from now
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
+
     const interview = await prisma.interview.create({
       data: {
         userId,
@@ -32,16 +36,20 @@ export async function createInterview(
         status: "in_progress",
         recordingStatus: "pending",
         transcriptStatus: "pending",
+        expiresAt,
+        expirationWarningSent: false,
       },
     });
 
     console.log("✅ Created interview record:", interview.id);
+    console.log(`📅 Interview will expire on: ${expiresAt.toISOString()}`);
     return { success: true, interview };
   } catch (error) {
     console.error("❌ Error creating interview:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to create interview",
+      error:
+        error instanceof Error ? error.message : "Failed to create interview",
     };
   }
 }
@@ -54,15 +62,25 @@ export async function startInterviewRecording(
   roomName: string
 ) {
   try {
-    console.log("🎬 Starting recording for interview:", interviewId, "room:", roomName);
-    
+    console.log(
+      "🎬 Starting recording for interview:",
+      interviewId,
+      "room:",
+      roomName
+    );
+
     if (!LIVEKIT_URL || !LIVEKIT_API_KEY || !LIVEKIT_API_SECRET) {
       const error = "LiveKit credentials not configured";
       console.error("❌", error);
       throw new Error(error);
     }
 
-    if (!AWS_S3_BUCKET || !AWS_S3_REGION || !AWS_ACCESS_KEY_ID || !AWS_SECRET_ACCESS_KEY) {
+    if (
+      !AWS_S3_BUCKET ||
+      !AWS_S3_REGION ||
+      !AWS_ACCESS_KEY_ID ||
+      !AWS_SECRET_ACCESS_KEY
+    ) {
       const error = "AWS S3 credentials not configured";
       console.error("❌", error, {
         hasBucket: !!AWS_S3_BUCKET,
@@ -119,18 +137,21 @@ export async function startInterviewRecording(
     return { success: true, egressId: egressInfo.egressId };
   } catch (error) {
     console.error("❌ Error starting recording:", error);
-    
+
     // Update interview status to failed
-    await prisma.interview.update({
-      where: { id: interviewId },
-      data: {
-        recordingStatus: "failed",
-      },
-    }).catch(console.error);
+    await prisma.interview
+      .update({
+        where: { id: interviewId },
+        data: {
+          recordingStatus: "failed",
+        },
+      })
+      .catch(console.error);
 
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to start recording",
+      error:
+        error instanceof Error ? error.message : "Failed to start recording",
     };
   }
 }
@@ -170,7 +191,8 @@ export async function getInterviewById(interviewId: string) {
     console.error("❌ Error fetching interview:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to fetch interview",
+      error:
+        error instanceof Error ? error.message : "Failed to fetch interview",
     };
   }
 }
@@ -186,7 +208,10 @@ export async function getUserInterviews() {
     }
 
     const interviews = await prisma.interview.findMany({
-      where: { clerkId: user.id },
+      where: {
+        clerkId: user.id,
+        // Expired interviews are automatically deleted, no need to filter
+      },
       include: {
         report: {
           select: {
@@ -203,7 +228,8 @@ export async function getUserInterviews() {
     console.error("❌ Error fetching interviews:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to fetch interviews",
+      error:
+        error instanceof Error ? error.message : "Failed to fetch interviews",
     };
   }
 }
@@ -233,7 +259,8 @@ export async function updateInterviewStatus(
     console.error("❌ Error updating interview:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to update interview",
+      error:
+        error instanceof Error ? error.message : "Failed to update interview",
     };
   }
 }
@@ -241,7 +268,10 @@ export async function updateInterviewStatus(
 /**
  * End an interview by room name (called when user hangs up)
  */
-export async function endInterviewByRoomName(roomName: string) {
+export async function endInterviewByRoomName(
+  roomName: string,
+  endedBy?: "user" | "agent" | "system" | "error"
+) {
   try {
     const interview = await prisma.interview.findUnique({
       where: { roomName },
@@ -263,10 +293,19 @@ export async function endInterviewByRoomName(roomName: string) {
         status: "completed",
         endedAt: new Date(),
         duration,
+        endedBy: endedBy || "user", // Default to user if not specified
       },
     });
 
-    console.log("✅ Interview ended:", interview.id, "Duration:", duration, "seconds");
+    console.log(
+      "✅ Interview ended:",
+      interview.id,
+      "Duration:",
+      duration,
+      "seconds",
+      "Ended by:",
+      endedBy || "user"
+    );
     return { success: true, interview: updated };
   } catch (error) {
     console.error("❌ Error ending interview:", error);
@@ -300,7 +339,8 @@ export async function updateInterviewRecording(
     console.error("❌ Error updating recording:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to update recording",
+      error:
+        error instanceof Error ? error.message : "Failed to update recording",
     };
   }
 }
@@ -319,7 +359,8 @@ export async function getInterviewByRoomName(roomName: string) {
     console.error("❌ Error fetching interview by room:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to fetch interview",
+      error:
+        error instanceof Error ? error.message : "Failed to fetch interview",
     };
   }
 }
@@ -359,8 +400,8 @@ export async function deleteInterview(interviewId: string) {
     console.error("❌ Error deleting interview:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to delete interview",
+      error:
+        error instanceof Error ? error.message : "Failed to delete interview",
     };
   }
 }
-

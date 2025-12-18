@@ -59,10 +59,10 @@ export function CallControlBar({
       // Step 2: Update interview status in database
       if (room.name) {
         console.log("💾 Updating interview status for room:", room.name);
-        const result = await endInterviewByRoomName(room.name);
+        const result = await endInterviewByRoomName(room.name, "user");
         
         if (result.success) {
-          console.log("✅ Interview status updated");
+          console.log("✅ Interview status updated (ended by user)");
         } else {
           console.error("❌ Failed to update interview status:", result.error);
         }

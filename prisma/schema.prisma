@@ -24,11 +24,18 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  documents  UserDocument[]
-  interviews Interview[]
+  // Stripe & Credits
+  stripeCustomerId String? @unique
+  credits          Int     @default(0)
+
+  documents    UserDocument[]
+  interviews   Interview[]
+  purchases    Purchase[]
+  creditLedger CreditLedger[]
 
   @@index([clerkId])
   @@index([email])
+  @@index([stripeCustomerId])
 }
 
 // User documents uploaded to Ragie
@@ -83,6 +90,17 @@ model Interview {
   startedAt DateTime  @default(now())
   endedAt   DateTime?
   duration  Int? // seconds
+  
+  // Expiration tracking
+  expiresAt              DateTime? // Calculated as startedAt + 7 days
+  expirationWarningSent  Boolean   @default(false) // Track if warning email was sent
+
+  // Credits tracking (NEW: Post-interview deduction model)
+  creditsPlanned  Int?     // Credits user planned to spend (5/10/15)
+  creditsDeducted Int?     // Actual credits deducted (null = not yet processed)
+  endedBy         String?  // "user", "agent", "system", "error" - who/what ended the interview
+  chargeDecision  String?  // "charged", "not_charged" - AI classification result
+  chargeReason    String?  // Human-readable reason for charge decision
 
   // Recording details
   egressId        String? // LiveKit egress ID
@@ -99,6 +117,9 @@ model Interview {
   @@index([userId])
   @@index([clerkId])
   @@index([roomName])
+  @@index([expiresAt])
+  @@index([expirationWarningSent])
+  @@index([creditsDeducted])
 }
 
 // Transcript segments from LiveKit transcription
@@ -138,4 +159,41 @@ model InterviewReport {
   interview Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
 
   @@index([interviewId])
+}
+
+// Track all credit purchases from Stripe
+model Purchase {
+  id                      String   @id @default(uuid())
+  userId                  String
+  stripePaymentIntentId   String   @unique
+  stripeCheckoutSessionId String?  @unique
+  amount                  Int // Amount in cents
+  credits                 Int // Credits purchased
+  status                  String // "pending", "completed", "failed", "refunded"
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([stripePaymentIntentId])
+  @@index([createdAt])
+}
+
+// Audit trail for all credit changes
+model CreditLedger {
+  id          String   @id @default(uuid())
+  userId      String
+  amount      Int // Positive for additions, negative for deductions
+  balance     Int // Balance after transaction
+  type        String // "purchase", "deduction", "refund", "admin_adjustment"
+  description String?
+  referenceId String? // Interview ID, Purchase ID, etc.
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([type])
 }
