@@ -12,12 +12,12 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 
 /**
  * Sync Stripe data to Prisma database
- * 
+ *
  * This is the single source of truth for credit purchases.
  * Called from:
  * - Success page (eager sync to avoid race conditions)
  * - Webhook handler (when payment events occur)
- * 
+ *
  * Philosophy: Keep one sync function that handles all credit updates.
  * Avoids split-brain issues with webhooks and partial updates.
  */
@@ -38,42 +38,59 @@ export async function syncStripeDataToPrisma(customerId: string) {
 
     console.log(`✅ Found user: ${user.id} with ${user.credits} credits`);
 
-    // Fetch all successful payment intents for this customer
-    const paymentIntents = await stripe.paymentIntents.list({
+    // Fetch all checkout sessions for this customer
+    const checkoutSessions = await stripe.checkout.sessions.list({
       customer: customerId,
       limit: 100,
     });
 
-    console.log(`📝 Found ${paymentIntents.data.length} payment intents`);
+    console.log(`📝 Found ${checkoutSessions.data.length} checkout sessions`);
 
     let creditsAdded = 0;
 
-    // Sync each payment intent
-    for (const intent of paymentIntents.data) {
-      // Only process succeeded payments
-      if (intent.status !== "succeeded") {
-        console.log(`⏭️  Skipping payment intent ${intent.id} (status: ${intent.status})`);
+    // Sync each checkout session
+    for (const session of checkoutSessions.data) {
+      // Only process completed sessions with payment
+      if (session.payment_status !== "paid") {
+        console.log(
+          `⏭️  Skipping session ${session.id} (payment_status: ${session.payment_status})`
+        );
         continue;
       }
 
-      // Check if already processed
-      const existing = await prisma.purchase.findUnique({
-        where: { stripePaymentIntentId: intent.id },
+      const paymentIntentId =
+        typeof session.payment_intent === "string"
+          ? session.payment_intent
+          : session.payment_intent?.id;
+
+      if (!paymentIntentId) {
+        console.log(`⏭️  Session ${session.id} has no payment intent`);
+        continue;
+      }
+
+      // Check if already processed (by payment intent or session)
+      const existing = await prisma.purchase.findFirst({
+        where: {
+          OR: [
+            { stripePaymentIntentId: paymentIntentId },
+            { stripeCheckoutSessionId: session.id },
+          ],
+        },
       });
 
       if (existing) {
-        console.log(`⏭️  Payment intent ${intent.id} already processed`);
+        console.log(`⏭️  Session ${session.id} already processed`);
         continue;
       }
 
       // Extract credits from metadata
-      const credits = parseInt(intent.metadata.credits || "0");
+      const credits = parseInt(session.metadata?.credits || "0");
       if (credits === 0) {
-        console.log(`⏭️  Payment intent ${intent.id} has no credits metadata`);
+        console.log(`⏭️  Session ${session.id} has no credits metadata`);
         continue;
       }
 
-      console.log(`💰 Processing payment intent ${intent.id}: ${credits} credits`);
+      console.log(`💰 Processing session ${session.id}: ${credits} credits`);
 
       // Create purchase and credit ledger entry in transaction
       await prisma.$transaction(async (tx) => {
@@ -81,8 +98,9 @@ export async function syncStripeDataToPrisma(customerId: string) {
         await tx.purchase.create({
           data: {
             userId: user.id,
-            stripePaymentIntentId: intent.id,
-            amount: intent.amount,
+            stripePaymentIntentId: paymentIntentId,
+            stripeCheckoutSessionId: session.id,
+            amount: session.amount_total || 0,
             credits,
             status: "completed",
           },
@@ -102,11 +120,13 @@ export async function syncStripeDataToPrisma(customerId: string) {
             balance: updatedUser.credits,
             type: "purchase",
             description: `Purchased ${credits} credits`,
-            referenceId: intent.id,
+            referenceId: session.id,
           },
         });
 
-        console.log(`✅ Added ${credits} credits. New balance: ${updatedUser.credits}`);
+        console.log(
+          `✅ Added ${credits} credits. New balance: ${updatedUser.credits}`
+        );
       });
 
       creditsAdded += credits;
@@ -128,6 +148,3 @@ export async function syncStripeDataToPrisma(customerId: string) {
     throw error;
   }
 }
-
-
-
