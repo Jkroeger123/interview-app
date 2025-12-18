@@ -230,50 +230,57 @@ export async function POST(request: Request) {
         console.log("🤖 Classification result:", classification);
 
         if (classification.shouldCharge) {
-          // Deduct credits in a transaction
-          console.log(`💰 Charging ${interview.creditsPlanned} credits...`);
+          // Ensure creditsPlanned is set (fallback to 0 if null)
+          const creditsToDeduct = interview.creditsPlanned ?? 0;
+          
+          if (creditsToDeduct === 0) {
+            console.log("⚠️ No credits planned for this interview - skipping deduction");
+          } else {
+            // Deduct credits in a transaction
+            console.log(`💰 Charging ${creditsToDeduct} credits...`);
 
-          await prisma.$transaction(async (tx) => {
-            // Get user's current balance
-            const user = await tx.user.findUnique({
-              where: { id: interview.userId },
-              select: { credits: true },
+            await prisma.$transaction(async (tx) => {
+              // Get user's current balance
+              const user = await tx.user.findUnique({
+                where: { id: interview.userId },
+                select: { credits: true },
+              });
+
+              if (!user) {
+                throw new Error("User not found");
+              }
+
+              // Deduct credits
+              const updatedUser = await tx.user.update({
+                where: { id: interview.userId },
+                data: { credits: { decrement: creditsToDeduct } },
+              });
+
+              // Update interview with deduction details
+              await tx.interview.update({
+                where: { id: interview.id },
+                data: {
+                  creditsDeducted: creditsToDeduct,
+                  chargeDecision: "charged",
+                  chargeReason: classification.reason,
+                },
+              });
+
+              // Create ledger entry
+              await tx.creditLedger.create({
+                data: {
+                  userId: interview.userId,
+                  amount: -creditsToDeduct,
+                  balance: updatedUser.credits,
+                  type: "deduction",
+                  description: `Interview: ${interview.visaType} (${creditsToDeduct} min) - ${classification.reason}`,
+                  referenceId: interview.id,
+                },
+              });
+
+              console.log(`✅ Charged ${creditsToDeduct} credits. New balance: ${updatedUser.credits}`);
             });
-
-            if (!user) {
-              throw new Error("User not found");
-            }
-
-            // Deduct credits
-            const updatedUser = await tx.user.update({
-              where: { id: interview.userId },
-              data: { credits: { decrement: interview.creditsPlanned } },
-            });
-
-            // Update interview with deduction details
-            await tx.interview.update({
-              where: { id: interview.id },
-              data: {
-                creditsDeducted: interview.creditsPlanned,
-                chargeDecision: "charged",
-                chargeReason: classification.reason,
-              },
-            });
-
-            // Create ledger entry
-            await tx.creditLedger.create({
-              data: {
-                userId: interview.userId,
-                amount: -interview.creditsPlanned,
-                balance: updatedUser.credits,
-                type: "deduction",
-                description: `Interview: ${interview.visaType} (${interview.creditsPlanned} min) - ${classification.reason}`,
-                referenceId: interview.id,
-              },
-            });
-
-            console.log(`✅ Charged ${interview.creditsPlanned} credits. New balance: ${updatedUser.credits}`);
-          });
+          }
         } else {
           // Not charging - interview was not successful
           console.log(`🎁 NOT charging - ${classification.reason}`);

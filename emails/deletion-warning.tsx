@@ -32,7 +32,7 @@ export const DeletionWarningEmail = ({
   return (
     <Html>
       <Head />
-      <Preview>Your interview report will be deleted in {hoursRemaining} hours</Preview>
+      <Preview>{`Your interview report will be deleted in ${hoursRemaining} hours`}</Preview>
       <Body style={main}>
         <Container style={container}>
           {/* Header */}

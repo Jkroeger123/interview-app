@@ -35,7 +35,7 @@ export async function sendReportReadyEmail(data: ReportReadyEmailData) {
   try {
     const reportUrl = `${APP_URL}/reports/${data.interviewId}`;
 
-    const emailHtml = render(
+    const emailHtml = await render(
       ReportReadyEmail({
         userName: data.userName,
         visaType: data.visaType,
@@ -53,8 +53,12 @@ export async function sendReportReadyEmail(data: ReportReadyEmailData) {
       html: emailHtml,
     });
 
-    console.log(`✅ Report ready email sent to ${data.to}:`, result.id);
-    return { success: true, messageId: result.id };
+    if (result.error) {
+      throw new Error(result.error.message);
+    }
+
+    console.log(`✅ Report ready email sent to ${data.to}:`, result.data?.id);
+    return { success: true, messageId: result.data?.id || "" };
   } catch (error) {
     console.error("❌ Error sending report ready email:", error);
     return {
@@ -71,7 +75,7 @@ export async function sendDeletionWarningEmail(data: DeletionWarningEmailData) {
   try {
     const reportUrl = `${APP_URL}/reports/${data.interviewId}`;
 
-    const emailHtml = render(
+    const emailHtml = await render(
       DeletionWarningEmail({
         userName: data.userName,
         visaType: data.visaType,
@@ -89,8 +93,12 @@ export async function sendDeletionWarningEmail(data: DeletionWarningEmailData) {
       html: emailHtml,
     });
 
-    console.log(`✅ Deletion warning email sent to ${data.to}:`, result.id);
-    return { success: true, messageId: result.id };
+    if (result.error) {
+      throw new Error(result.error.message);
+    }
+
+    console.log(`✅ Deletion warning email sent to ${data.to}:`, result.data?.id);
+    return { success: true, messageId: result.data?.id || "" };
   } catch (error) {
     console.error("❌ Error sending deletion warning email:", error);
     return {

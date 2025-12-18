@@ -15,6 +15,7 @@ export const CREDIT_PACKS = [
     price: 1000, // $10 in cents
     priceId: process.env.STRIPE_PRICE_ID_10 || "",
     description: "Perfect for trying out the platform",
+    popular: false,
   },
   {
     id: "pack_50",
@@ -22,8 +23,8 @@ export const CREDIT_PACKS = [
     credits: 50,
     price: 5000, // $50 in cents
     priceId: process.env.STRIPE_PRICE_ID_50 || "",
-    popular: true,
     description: "Best value for regular practice",
+    popular: true,
   },
   {
     id: "pack_100",
@@ -32,6 +33,7 @@ export const CREDIT_PACKS = [
     price: 10000, // $100 in cents
     priceId: process.env.STRIPE_PRICE_ID_100 || "",
     description: "Maximum credits for serious preparation",
+    popular: false,
   },
 ] as const;
 

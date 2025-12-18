@@ -4,7 +4,7 @@ import Stripe from "stripe";
 
 /**
  * Relevant Stripe events for credit purchases
- * 
+ *
  * Per the guide: Only track events that affect payment state.
  * We don't need 258 events - just the ones that matter for one-time payments.
  */
@@ -60,7 +60,7 @@ export async function POST(req: Request) {
 
 /**
  * Process a Stripe event
- * 
+ *
  * Extracts customer ID and syncs data to Prisma.
  * This is the single sync function per the guide's philosophy.
  */
@@ -90,6 +90,3 @@ async function processEvent(event: Stripe.Event) {
     // Stripe will retry and we can fix issues in the meantime
   }
 }
-
-
-
