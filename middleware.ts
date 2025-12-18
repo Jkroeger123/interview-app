@@ -4,6 +4,7 @@ const isPublicRoute = createRouteMatcher([
   "/sign-in(.*)",
   "/sign-up(.*)",
   "/api/webhooks(.*)", // All webhooks (Clerk, Ragie, etc.) must be public for external services
+  "/api/stripe/webhook", // Stripe webhook must be public for Stripe to call it
   "/api/interviews/session-report", // Agent session report (called by LiveKit agent, no auth)
 ]);
 

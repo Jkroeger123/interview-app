@@ -12,12 +12,16 @@ interface MicrophoneTestProps {
 export function MicrophoneTest({ onTestComplete }: MicrophoneTestProps) {
   const [isTestingMic, setIsTestingMic] = useState(false);
   const [volume, setVolume] = useState(0);
-  const [micStatus, setMicStatus] = useState<"idle" | "testing" | "success" | "error">("idle");
+  const [micStatus, setMicStatus] = useState<
+    "idle" | "testing" | "success" | "error"
+  >("idle");
   const [goodVolumeCount, setGoodVolumeCount] = useState(0);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const micStreamRef = useRef<MediaStream | null>(null);
   const animationFrameRef = useRef<number | null>(null);
+  const consecutiveGoodVolumeRef = useRef<number>(0);
+  const micStatusRef = useRef<"idle" | "testing" | "success" | "error">("idle");
 
   // Test sentences for user to read
   const testSentences = [
@@ -33,6 +37,8 @@ export function MicrophoneTest({ onTestComplete }: MicrophoneTestProps) {
     try {
       setIsTestingMic(true);
       setMicStatus("testing");
+      micStatusRef.current = "testing";
+      consecutiveGoodVolumeRef.current = 0;
 
       // Request microphone access
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -62,6 +68,7 @@ export function MicrophoneTest({ onTestComplete }: MicrophoneTestProps) {
     } catch (error) {
       console.error("Microphone access error:", error);
       setMicStatus("error");
+      micStatusRef.current = "error";
       setIsTestingMic(false);
     }
   };
@@ -71,7 +78,6 @@ export function MicrophoneTest({ onTestComplete }: MicrophoneTestProps) {
 
     const bufferLength = analyserRef.current.frequencyBinCount;
     const dataArray = new Uint8Array(bufferLength);
-    let consecutiveGoodVolume = 0;
 
     const updateVolume = () => {
       if (!analyserRef.current) return;
@@ -79,25 +85,43 @@ export function MicrophoneTest({ onTestComplete }: MicrophoneTestProps) {
       analyserRef.current.getByteFrequencyData(dataArray);
 
       // Calculate average volume
-      const average = dataArray.reduce((sum, value) => sum + value, 0) / bufferLength;
+      const average =
+        dataArray.reduce((sum, value) => sum + value, 0) / bufferLength;
       const normalizedVolume = Math.min(100, (average / 255) * 100);
 
       setVolume(normalizedVolume);
 
       // Check if mic is working (volume above threshold of 8 for better detection)
-      if (normalizedVolume > 8 && micStatus === "testing") {
-        consecutiveGoodVolume++;
+      // Use ref to avoid stale closure issues
+      if (normalizedVolume > 8 && micStatusRef.current === "testing") {
+        consecutiveGoodVolumeRef.current++;
         setGoodVolumeCount((prev) => prev + 1);
-        
+
+        console.log(
+          `🎤 Good volume: ${normalizedVolume.toFixed(1)}% (${consecutiveGoodVolumeRef.current}/20)`
+        );
+
         // After 20 consecutive frames (~0.3 seconds) of good volume, mark as success
-        if (consecutiveGoodVolume >= 20) {
+        if (consecutiveGoodVolumeRef.current >= 20) {
+          console.log("✅ Microphone test passed!");
           setMicStatus("success");
+          micStatusRef.current = "success";
           if (onTestComplete) {
             onTestComplete(true);
           }
+          // Stop monitoring after success
+          if (animationFrameRef.current) {
+            cancelAnimationFrame(animationFrameRef.current);
+          }
+          return;
         }
       } else if (normalizedVolume <= 8) {
-        consecutiveGoodVolume = 0;
+        if (consecutiveGoodVolumeRef.current > 0) {
+          console.log(
+            `⚠️ Volume dropped: ${normalizedVolume.toFixed(1)}% (resetting counter)`
+          );
+        }
+        consecutiveGoodVolumeRef.current = 0;
       }
 
       animationFrameRef.current = requestAnimationFrame(updateVolume);
@@ -128,15 +152,19 @@ export function MicrophoneTest({ onTestComplete }: MicrophoneTestProps) {
     setIsTestingMic(false);
     setVolume(0);
     setGoodVolumeCount(0);
+    consecutiveGoodVolumeRef.current = 0;
 
-    if (micStatus !== "success") {
+    if (micStatusRef.current !== "success") {
       setMicStatus("idle");
+      micStatusRef.current = "idle";
     }
   };
 
   const retryTest = () => {
     setMicStatus("idle");
+    micStatusRef.current = "idle";
     setGoodVolumeCount(0);
+    consecutiveGoodVolumeRef.current = 0;
     if (onTestComplete) {
       onTestComplete(false);
     }
@@ -157,8 +185,8 @@ export function MicrophoneTest({ onTestComplete }: MicrophoneTestProps) {
             micStatus === "success"
               ? "bg-green-500/10"
               : micStatus === "error"
-              ? "bg-red-500/10"
-              : "bg-orange-500/10"
+                ? "bg-red-500/10"
+                : "bg-orange-500/10"
           }`}
         >
           {micStatus === "success" ? (
@@ -236,7 +264,8 @@ export function MicrophoneTest({ onTestComplete }: MicrophoneTestProps) {
           {micStatus === "error" && (
             <div className="space-y-2">
               <p className="text-sm text-red-600 font-medium">
-                ✗ Could not access microphone. Please check your browser permissions.
+                ✗ Could not access microphone. Please check your browser
+                permissions.
               </p>
               <Button
                 size="sm"
@@ -254,23 +283,23 @@ export function MicrophoneTest({ onTestComplete }: MicrophoneTestProps) {
             <div className="mt-3">
               <div className="relative w-full h-3 bg-muted rounded-full overflow-hidden">
                 {/* Threshold indicator line */}
-                <div 
+                <div
                   className="absolute top-0 bottom-0 w-0.5 bg-blue-400 z-10"
                   style={{ left: "8%" }}
                   title="Minimum volume needed"
                 />
                 <div
                   className={`h-full transition-all duration-100 rounded-full ${
-                    volume > 8
-                      ? "bg-green-500"
-                      : "bg-red-500"
+                    volume > 8 ? "bg-green-500" : "bg-red-500"
                   }`}
                   style={{ width: `${volume}%` }}
                 />
               </div>
               <div className="flex justify-between mt-1">
                 <span className="text-xs text-muted-foreground">Too Quiet</span>
-                <span className="text-xs font-medium text-green-600">Good Volume →</span>
+                <span className="text-xs font-medium text-green-600">
+                  Good Volume →
+                </span>
               </div>
             </div>
           )}
@@ -279,6 +308,3 @@ export function MicrophoneTest({ onTestComplete }: MicrophoneTestProps) {
     </Card>
   );
 }
-
-
-
