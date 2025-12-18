@@ -165,9 +165,9 @@ model InterviewReport {
 model Purchase {
   id                      String   @id @default(uuid())
   userId                  String
-  stripePaymentIntentId   String   @unique
-  stripeCheckoutSessionId String?  @unique
-  amount                  Int // Amount in cents
+  stripePaymentIntentId   String?  @unique // Nullable for free checkouts (100% coupon)
+  stripeCheckoutSessionId String   @unique // Primary identifier (always present)
+  amount                  Int // Amount in cents (0 for promotional)
   credits                 Int // Credits purchased
   status                  String // "pending", "completed", "failed", "refunded"
   createdAt               DateTime @default(now())
@@ -177,6 +177,7 @@ model Purchase {
 
   @@index([userId])
   @@index([stripePaymentIntentId])
+  @@index([stripeCheckoutSessionId])
   @@index([createdAt])
 }
 

@@ -50,32 +50,18 @@ export async function syncStripeDataToPrisma(customerId: string) {
 
     // Sync each checkout session
     for (const session of checkoutSessions.data) {
-      // Only process completed sessions with payment
-      if (session.payment_status !== "paid") {
+      // Only process completed sessions (status = "complete" means checkout finished successfully)
+      // This works for both paid and free (100% coupon) checkouts
+      if (session.status !== "complete") {
         console.log(
-          `⏭️  Skipping session ${session.id} (payment_status: ${session.payment_status})`
+          `⏭️  Skipping session ${session.id} (status: ${session.status})`
         );
         continue;
       }
 
-      const paymentIntentId =
-        typeof session.payment_intent === "string"
-          ? session.payment_intent
-          : session.payment_intent?.id;
-
-      if (!paymentIntentId) {
-        console.log(`⏭️  Session ${session.id} has no payment intent`);
-        continue;
-      }
-
-      // Check if already processed (by payment intent or session)
-      const existing = await prisma.purchase.findFirst({
-        where: {
-          OR: [
-            { stripePaymentIntentId: paymentIntentId },
-            { stripeCheckoutSessionId: session.id },
-          ],
-        },
+      // Check if already processed (by session ID - this is the unique identifier)
+      const existing = await prisma.purchase.findUnique({
+        where: { stripeCheckoutSessionId: session.id },
       });
 
       if (existing) {
@@ -90,7 +76,16 @@ export async function syncStripeDataToPrisma(customerId: string) {
         continue;
       }
 
-      console.log(`💰 Processing session ${session.id}: ${credits} credits`);
+      // Get payment intent ID if available (might be undefined for free checkouts with 100% coupon)
+      const paymentIntentId =
+        typeof session.payment_intent === "string"
+          ? session.payment_intent
+          : session.payment_intent?.id || undefined;
+
+      const amountPaid = (session.amount_total || 0) / 100;
+      console.log(
+        `💰 Processing session ${session.id}: ${credits} credits (amount: $${amountPaid}${amountPaid === 0 ? " - promotional" : ""})`
+      );
 
       // Create purchase and credit ledger entry in transaction
       await prisma.$transaction(async (tx) => {
@@ -113,13 +108,14 @@ export async function syncStripeDataToPrisma(customerId: string) {
         });
 
         // Create ledger entry
+        const isPromotional = (session.amount_total || 0) === 0;
         await tx.creditLedger.create({
           data: {
             userId: user.id,
             amount: credits,
             balance: updatedUser.credits,
             type: "purchase",
-            description: `Purchased ${credits} credits`,
+            description: `Purchased ${credits} credits${isPromotional ? " (promotional)" : ""}`,
             referenceId: session.id,
           },
         });
