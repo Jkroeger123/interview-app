@@ -87,7 +87,12 @@ export default function ConfigureInterviewPage() {
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Info className="size-4 text-muted-foreground cursor-help" />
+                      <button
+                        type="button"
+                        className="inline-flex items-center justify-center rounded-full hover:bg-accent transition-colors p-1"
+                      >
+                        <Info className="size-4 text-muted-foreground" />
+                      </button>
                     </TooltipTrigger>
                     <TooltipContent side="right" className="max-w-xs">
                       <div className="space-y-2 text-sm">

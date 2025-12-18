@@ -84,19 +84,19 @@ export function MicrophoneTest({ onTestComplete }: MicrophoneTestProps) {
 
       setVolume(normalizedVolume);
 
-      // Check if mic is working (volume above threshold of 15 for better detection)
-      if (normalizedVolume > 15 && micStatus === "testing") {
+      // Check if mic is working (volume above threshold of 8 for better detection)
+      if (normalizedVolume > 8 && micStatus === "testing") {
         consecutiveGoodVolume++;
         setGoodVolumeCount((prev) => prev + 1);
         
-        // After 30 consecutive frames (~0.5 seconds) of good volume, mark as success
-        if (consecutiveGoodVolume >= 30) {
+        // After 20 consecutive frames (~0.3 seconds) of good volume, mark as success
+        if (consecutiveGoodVolume >= 20) {
           setMicStatus("success");
           if (onTestComplete) {
             onTestComplete(true);
           }
         }
-      } else if (normalizedVolume <= 15) {
+      } else if (normalizedVolume <= 8) {
         consecutiveGoodVolume = 0;
       }
 
@@ -252,21 +252,25 @@ export function MicrophoneTest({ onTestComplete }: MicrophoneTestProps) {
           {/* Volume Meter */}
           {isTestingMic && (
             <div className="mt-3">
-              <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+              <div className="relative w-full h-3 bg-muted rounded-full overflow-hidden">
+                {/* Threshold indicator line */}
+                <div 
+                  className="absolute top-0 bottom-0 w-0.5 bg-blue-400 z-10"
+                  style={{ left: "8%" }}
+                  title="Minimum volume needed"
+                />
                 <div
                   className={`h-full transition-all duration-100 rounded-full ${
-                    volume > 50
+                    volume > 8
                       ? "bg-green-500"
-                      : volume > 20
-                      ? "bg-yellow-500"
                       : "bg-red-500"
                   }`}
                   style={{ width: `${volume}%` }}
                 />
               </div>
               <div className="flex justify-between mt-1">
-                <span className="text-xs text-muted-foreground">Low</span>
-                <span className="text-xs text-muted-foreground">High</span>
+                <span className="text-xs text-muted-foreground">Too Quiet</span>
+                <span className="text-xs font-medium text-green-600">Good Volume →</span>
               </div>
             </div>
           )}

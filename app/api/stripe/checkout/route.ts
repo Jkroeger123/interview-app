@@ -17,7 +17,10 @@ export async function POST(req: Request) {
     const { packId } = body;
 
     if (!packId) {
-      return NextResponse.json({ error: "Pack ID is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Pack ID is required" },
+        { status: 400 }
+      );
     }
 
     // Find the selected pack
@@ -30,12 +33,17 @@ export async function POST(req: Request) {
     // Validate price ID is configured
     if (!pack.priceId) {
       return NextResponse.json(
-        { error: "Pack price ID not configured. Please set STRIPE_PRICE_ID_* env variables." },
+        {
+          error:
+            "Pack price ID not configured. Please set STRIPE_PRICE_ID_* env variables.",
+        },
         { status: 500 }
       );
     }
 
-    console.log(`🛒 Creating checkout for ${pack.name} (${pack.credits} credits)`);
+    console.log(
+      `🛒 Creating checkout for ${pack.name} (${pack.credits} credits)`
+    );
 
     // Get or create database user
     let dbUser = await prisma.user.findUnique({
@@ -95,6 +103,7 @@ export async function POST(req: Request) {
         },
       ],
       mode: "payment",
+      allow_promotion_codes: true,
       success_url: `${process.env.NEXT_PUBLIC_APP_URL}/credits/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/credits`,
       metadata: {
@@ -125,6 +134,3 @@ export async function POST(req: Request) {
     );
   }
 }
-
-
-
