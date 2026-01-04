@@ -26,27 +26,30 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_xxxxx
 
 **Create 3 products**:
 
-**Product 1: Starter Pack**
-- Name: `Starter Pack`
-- Price: `$10.00` (one-time)
+**Product 1: Trial Pack**
+
+- Name: `Trial Pack`
+- Price: `$5.00` (one-time)
 - Copy the **Price ID** (starts with `price_`)
 
-**Product 2: Pro Pack**
-- Name: `Pro Pack`
-- Price: `$50.00` (one-time)
+**Product 2: Starter Pack**
+
+- Name: `Starter Pack`
+- Price: `$10.00` (one-time)
 - Copy the **Price ID**
 
-**Product 3: Enterprise Pack**
-- Name: `Enterprise Pack`
-- Price: `$100.00` (one-time)
+**Product 3: Pro Pack**
+
+- Name: `Pro Pack`
+- Price: `$50.00` (one-time)
 - Copy the **Price ID**
 
 Add price IDs to `.env.local`:
 
 ```env
+STRIPE_PRICE_ID_5=price_xxxxx
 STRIPE_PRICE_ID_10=price_xxxxx
 STRIPE_PRICE_ID_50=price_xxxxx
-STRIPE_PRICE_ID_100=price_xxxxx
 ```
 
 ## Step 3: Set Up Local Webhook (1 minute)
@@ -65,6 +68,7 @@ STRIPE_PRICE_ID_100=price_xxxxx
    ```
 
 **Option B: Skip webhooks for now**
+
 - Eager sync on success page will still work
 - Webhooks can be set up later
 
@@ -87,9 +91,9 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_xxxxx
 STRIPE_WEBHOOK_SECRET=whsec_xxxxx
 
 # Stripe Price IDs
+STRIPE_PRICE_ID_5=price_xxxxx
 STRIPE_PRICE_ID_10=price_xxxxx
 STRIPE_PRICE_ID_50=price_xxxxx
-STRIPE_PRICE_ID_100=price_xxxxx
 
 # App URL
 NEXT_PUBLIC_APP_URL=http://localhost:3000
@@ -126,10 +130,12 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 ### Credits don't appear?
 
 **Check console logs**:
+
 - Look for "Syncing Stripe data" messages
 - Check for any errors
 
 **Check Stripe Dashboard**:
+
 - Go to: https://dashboard.stripe.com/test/payments
 - Verify payment succeeded
 - Check customer metadata has `userId`
@@ -137,11 +143,13 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 ### Webhook errors?
 
 **If using Stripe CLI**:
+
 - Ensure it's running in separate terminal
 - Check terminal output for webhook delivery
 - Secret should match `.env.local`
 
 **If not using CLI**:
+
 - Eager sync should still work
 - Credits appear from success page sync
 
@@ -161,16 +169,19 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 ## Test Different Scenarios
 
 **Test insufficient credits**:
+
 1. Start with 5 credits
 2. Try "Standard - 10 minutes" interview
 3. Should block and show error
 
 **Test credit deduction**:
+
 1. Have 15+ credits
 2. Start any interview
 3. Credits should deduct immediately
 
 **Test multiple purchases**:
+
 1. Buy 10 credits
 2. Buy 50 credits
 3. Balance should be 60 total
@@ -205,6 +216,7 @@ See `STRIPE_SETUP_GUIDE.md` for details.
 ## Success! 🎉
 
 You now have a fully functional credit billing system:
+
 - Users can purchase credits
 - Credits are deducted on interview start
 - Complete transaction history
@@ -212,6 +224,3 @@ You now have a fully functional credit billing system:
 - Full audit trail
 
 Happy coding! 💳✨
-
-
-

@@ -39,22 +39,37 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_your_key_here
 
 Create 3 products:
 
-#### Product 1: Starter Pack
-- **Name**: Starter Pack
-- **Description**: 10 interview credits - perfect for trying out the platform
+#### Product 1: Trial Pack
+
+- **Name**: Trial Pack
+- **Description**: 5 interview credits - perfect for trying out the platform
 - **Pricing**: One-time payment
-- **Price**: $10.00 USD
+- **Price**: $5.00 USD
 - **Tax code**: (Optional) Digital goods or services
 - Click **Save product**
 - Copy the **Price ID** (starts with `price_`)
 - Add to `.env.local`:
   ```env
+  STRIPE_PRICE_ID_5=price_xxxxx
+  ```
+
+#### Product 2: Starter Pack
+
+- **Name**: Starter Pack
+- **Description**: 10 interview credits - great for regular practice
+- **Pricing**: One-time payment
+- **Price**: $10.00 USD
+- Click **Save product**
+- Copy the **Price ID**
+- Add to `.env.local`:
+  ```env
   STRIPE_PRICE_ID_10=price_xxxxx
   ```
 
-#### Product 2: Pro Pack
+#### Product 3: Pro Pack
+
 - **Name**: Pro Pack
-- **Description**: 50 interview credits - best value for regular practice
+- **Description**: 50 interview credits - best value for serious preparation
 - **Pricing**: One-time payment
 - **Price**: $50.00 USD
 - Click **Save product**
@@ -62,18 +77,6 @@ Create 3 products:
 - Add to `.env.local`:
   ```env
   STRIPE_PRICE_ID_50=price_xxxxx
-  ```
-
-#### Product 3: Enterprise Pack
-- **Name**: Enterprise Pack
-- **Description**: 100 interview credits - maximum credits for serious preparation
-- **Pricing**: One-time payment
-- **Price**: $100.00 USD
-- Click **Save product**
-- Copy the **Price ID**
-- Add to `.env.local`:
-  ```env
-  STRIPE_PRICE_ID_100=price_xxxxx
   ```
 
 ## Step 3: Configure Payment Methods
@@ -89,6 +92,7 @@ Per the guide, Cash App Pay can cause issues with one-time payments.
 ### Enable Card Payments
 
 Ensure **Cards** is enabled (should be by default):
+
 - Credit cards
 - Debit cards
 - Digital wallets (Apple Pay, Google Pay)
@@ -140,9 +144,9 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
 STRIPE_WEBHOOK_SECRET=whsec_...
 
 # Stripe Price IDs
+STRIPE_PRICE_ID_5=price_...
 STRIPE_PRICE_ID_10=price_...
 STRIPE_PRICE_ID_50=price_...
-STRIPE_PRICE_ID_100=price_...
 
 # App URL (for redirect URLs)
 NEXT_PUBLIC_APP_URL=http://localhost:3000  # or your production URL
@@ -155,12 +159,14 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000  # or your production URL
 Use these test cards: https://stripe.com/docs/testing#cards
 
 **Success Card:**
+
 - Card number: `4242 4242 4242 4242`
 - Expiry: Any future date (e.g., `12/34`)
 - CVC: Any 3 digits (e.g., `123`)
 - ZIP: Any 5 digits (e.g., `12345`)
 
 **Declined Card:**
+
 - Card number: `4000 0000 0000 0002`
 
 ### Testing Flow
@@ -206,22 +212,26 @@ Use these test cards: https://stripe.com/docs/testing#cards
 ### Common Issues
 
 **Webhook fails:**
+
 - Check endpoint URL is correct
 - Verify webhook secret is correct
 - Check server logs for errors
 
 **Credits don't appear:**
+
 - Check success page sync ran (server logs)
 - Check webhook was received (Stripe logs)
 - Verify payment intent has credits metadata
 
 **Customer not found:**
+
 - Ensure user exists in Prisma before checkout
 - Check upsert logic in checkout endpoint
 
 ## Security Best Practices
 
 ✅ **DO:**
+
 - Always verify webhook signatures
 - Use environment variables for secrets
 - Validate price IDs on server
@@ -229,6 +239,7 @@ Use these test cards: https://stripe.com/docs/testing#cards
 - Log all credit changes
 
 ❌ **DON'T:**
+
 - Trust client-side data for amounts
 - Skip webhook signature verification
 - Expose secret keys in frontend
@@ -254,6 +265,3 @@ Use these test cards: https://stripe.com/docs/testing#cards
 - [ ] Stripe dashboard shows correct metadata
 - [ ] Webhooks deliver successfully
 - [ ] Credit ledger maintains accurate history
-
-
-

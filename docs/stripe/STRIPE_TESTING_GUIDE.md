@@ -76,13 +76,13 @@ SELECT * FROM "CreditLedger" WHERE "userId" = 'your_user_id' ORDER BY "createdAt
 
 **Steps**:
 
-1. Purchase 10 credits (balance: 10)
-2. Purchase 50 credits (balance: 60)
-3. Purchase 100 credits (balance: 160)
+1. Purchase 5 credits (balance: 5)
+2. Purchase 10 credits (balance: 15)
+3. Purchase 50 credits (balance: 65)
 
 **Expected**:
 
-- ✅ Credits accumulate correctly (10 → 60 → 160)
+- ✅ Credits accumulate correctly (5 → 15 → 65)
 - ✅ Each purchase creates ledger entry
 - ✅ Balance is accurate after each purchase
 - ✅ Transaction history shows all purchases

@@ -16,6 +16,7 @@ npx prisma migrate deploy
 ```
 
 **New Fields Added:**
+
 - `Interview.creditsPlanned` - Credits user planned to spend
 - `Interview.creditsDeducted` - Credits actually deducted
 - `Interview.endedBy` - Who/what ended interview ("user", "agent", "system", "error")
@@ -38,9 +39,9 @@ OPENAI_API_KEY=sk-...
 STRIPE_SECRET_KEY=sk_live_...
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_...
 STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_PRICE_ID_5=price_...
 STRIPE_PRICE_ID_10=price_...
 STRIPE_PRICE_ID_50=price_...
-STRIPE_PRICE_ID_100=price_...
 
 RESEND_API_KEY=re_...
 RESEND_FROM_EMAIL=Vysa <noreply@yourdomain.com>
@@ -81,6 +82,7 @@ CRON_SECRET=... (for cron jobs)
 **Usage:** Classification uses GPT-4o (~$0.01 per interview)
 
 **Monthly Cost Estimate:**
+
 - 100 interviews/month = ~$1
 - 1,000 interviews/month = ~$10
 - 10,000 interviews/month = ~$100
@@ -99,10 +101,10 @@ CRON_SECRET=... (for cron jobs)
    - Copy **Live Publishable Key** → `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
 
 3. **Create Products** (if not already in live mode):
+   - 5 Credits - $5 (one-time)
    - 10 Credits - $10 (one-time)
    - 50 Credits - $50 (one-time)
-   - 100 Credits - $100 (one-time)
-   - Copy Price IDs → `STRIPE_PRICE_ID_10`, `STRIPE_PRICE_ID_50`, `STRIPE_PRICE_ID_100`
+   - Copy Price IDs → `STRIPE_PRICE_ID_5`, `STRIPE_PRICE_ID_10`, `STRIPE_PRICE_ID_50`
 
 4. **Set Up Production Webhook:**
    - URL: `https://yourdomain.com/api/stripe/webhook`
@@ -118,6 +120,7 @@ CRON_SECRET=... (for cron jobs)
    - Remove Cash App Pay
 
 **Test Checklist:**
+
 - [ ] Products created with correct prices
 - [ ] Webhook endpoint configured
 - [ ] Webhook signing secret added
@@ -145,14 +148,17 @@ CRON_SECRET=... (for cron jobs)
    - Add to: `RESEND_FROM_EMAIL`
 
 **Emails Sent:**
+
 - Interview report ready notification
 - Interview expiring in 24h warning
 
 **Monthly Cost:**
+
 - Free tier: 3,000 emails/month
 - Pro: $20/month for 50,000 emails
 
 **Test Checklist:**
+
 - [ ] Domain verified in Resend
 - [ ] API key added to environment
 - [ ] From email configured
@@ -184,6 +190,7 @@ CRON_SECRET=... (for cron jobs)
    - Create rule
 
 **Verify:**
+
 - [ ] Lifecycle rule created
 - [ ] Applies to `interviews/` prefix
 - [ ] Deletion set to 7 days
@@ -215,16 +222,19 @@ CRON_SECRET=... (for cron jobs)
 **If using another platform:**
 
 Set up external cron service (e.g., cron-job.org):
+
 - URL: `https://yourdomain.com/api/cron/check-expiring-interviews`
 - Schedule: Every 6 hours
 - Method: GET
 - Header: `Authorization: Bearer YOUR_CRON_SECRET`
 
 **What it does:**
+
 - Sends warning emails 24h before expiration
 - Deletes expired interview records (videos auto-delete via S3)
 
 **Test Checklist:**
+
 - [ ] Cron job configured
 - [ ] `CRON_SECRET` set in environment
 - [ ] Test endpoint manually with correct auth header
@@ -238,12 +248,14 @@ Set up external cron service (e.g., cron-job.org):
 **If using LiveKit Cloud:**
 
 1. **Build and deploy agent:**
+
 ```bash
 cd /Users/justinkroeger/agent-starter-python
 # Follow LiveKit deployment docs
 ```
 
 2. **Verify environment variables in agent:**
+
 ```env
 OPENAI_API_KEY=...
 TAVUS_REPLICA_ID=...
@@ -256,6 +268,7 @@ AWS_S3_REGION=...
 **If self-hosted:**
 
 Ensure agent has access to all required env vars and can reach your Next.js API at:
+
 - `https://yourdomain.com/api/interviews/session-report`
 
 ---
@@ -265,6 +278,7 @@ Ensure agent has access to all required env vars and can reach your Next.js API 
 ### Critical Tests
 
 **1. Full Purchase Flow:**
+
 ```
 ✓ Buy credits with real card
 ✓ Credits appear immediately
@@ -273,6 +287,7 @@ Ensure agent has access to all required env vars and can reach your Next.js API 
 ```
 
 **2. Interview Start (No Deduction):**
+
 ```
 ✓ Start interview with 10 credits
 ✓ Interview starts successfully
@@ -281,6 +296,7 @@ Ensure agent has access to all required env vars and can reach your Next.js API 
 ```
 
 **3. Interview End - User Ends (>50%):**
+
 ```
 ✓ Complete 6+ minutes of 10-minute interview
 ✓ Click "Hang Up"
@@ -291,6 +307,7 @@ Ensure agent has access to all required env vars and can reach your Next.js API 
 ```
 
 **4. Interview End - Technical Failure:**
+
 ```
 ✓ Start interview
 ✓ Disconnect after 15 seconds
@@ -301,6 +318,7 @@ Ensure agent has access to all required env vars and can reach your Next.js API 
 ```
 
 **5. Email Notifications:**
+
 ```
 ✓ Complete interview
 ✓ Receive "Report Ready" email
@@ -308,6 +326,7 @@ Ensure agent has access to all required env vars and can reach your Next.js API 
 ```
 
 **6. OpenAI Classification:**
+
 ```
 ✓ Check logs for classification results
 ✓ Verify AI is analyzing transcripts
@@ -321,6 +340,7 @@ Ensure agent has access to all required env vars and can reach your Next.js API 
 ### Key Metrics to Watch
 
 **First Week:**
+
 - Monitor charge rate (should be 70-85%)
 - Check classification reasons
 - Watch for unusual patterns
@@ -330,7 +350,7 @@ Ensure agent has access to all required env vars and can reach your Next.js API 
 
 ```sql
 -- Charge rate
-SELECT 
+SELECT
   COUNT(*) FILTER (WHERE "chargeDecision" = 'charged') * 100.0 / COUNT(*) as charge_rate,
   COUNT(*) as total_interviews
 FROM "Interview"
@@ -345,7 +365,7 @@ ORDER BY count DESC
 LIMIT 10;
 
 -- Average duration by decision
-SELECT 
+SELECT
   "chargeDecision",
   AVG("duration") as avg_duration_seconds,
   COUNT(*) as count
@@ -367,6 +387,7 @@ GROUP BY "chargeDecision";
    - Deploy old version
 
 2. **Manual credit refunds** (if needed):
+
 ```sql
 -- Find affected users
 SELECT * FROM "Interview"
@@ -384,7 +405,7 @@ WHERE "id" = 'user_id_here';
 
 -- Create refund ledger entry
 INSERT INTO "CreditLedger" (
-  "id", "userId", "amount", "balance", "type", 
+  "id", "userId", "amount", "balance", "type",
   "description", "referenceId", "createdAt"
 ) VALUES (
   gen_random_uuid(),
@@ -429,19 +450,20 @@ COMMIT;
 
 **Per Month (1,000 interviews):**
 
-| Service | Cost |
-|---------|------|
-| OpenAI (GPT-4o classification) | ~$10 |
-| Resend (emails) | Free (< 3k emails) |
-| AWS S3 (storage + lifecycle) | ~$2 |
-| Stripe (transaction fees) | 2.9% + $0.30 per purchase |
-| **Total Additional Cost** | **~$12/month** |
+| Service                        | Cost                      |
+| ------------------------------ | ------------------------- |
+| OpenAI (GPT-4o classification) | ~$10                      |
+| Resend (emails)                | Free (< 3k emails)        |
+| AWS S3 (storage + lifecycle)   | ~$2                       |
+| Stripe (transaction fees)      | 2.9% + $0.30 per purchase |
+| **Total Additional Cost**      | **~$12/month**            |
 
 ---
 
 ## Support Contacts
 
 **If you need help:**
+
 - OpenAI: https://platform.openai.com/docs
 - Stripe: https://dashboard.stripe.com/support
 - Resend: https://resend.com/docs
@@ -452,6 +474,7 @@ COMMIT;
 ## Post-Deployment
 
 **First 24 Hours:**
+
 - [ ] Monitor error logs closely
 - [ ] Check Stripe Dashboard for successful charges
 - [ ] Verify OpenAI API calls are working
@@ -459,6 +482,7 @@ COMMIT;
 - [ ] Watch charge rate metrics
 
 **First Week:**
+
 - [ ] Review classification accuracy
 - [ ] Analyze charge reasons
 - [ ] Gather user feedback
@@ -469,6 +493,3 @@ COMMIT;
 **Good luck with your deployment! 🚀**
 
 The new post-interview credit system is fair, user-friendly, and will increase trust while preventing charges for poor experiences.
-
-
-

@@ -566,7 +566,7 @@ Implemented a complete Stripe credit-based billing system following the "stay sa
    - Idempotent (prevents duplicate processing)
 
 2. **`lib/stripe-config.ts`**:
-   - Credit pack definitions (10, 50, 100 credits)
+   - Credit pack definitions (5, 10, 50 credits)
    - Pricing configuration ($10, $50, $100)
    - Price ID management
 
@@ -730,9 +730,9 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
 STRIPE_WEBHOOK_SECRET=whsec_...
 
 # Stripe Price IDs (from Stripe Dashboard)
+STRIPE_PRICE_ID_5=price_...
 STRIPE_PRICE_ID_10=price_...
 STRIPE_PRICE_ID_50=price_...
-STRIPE_PRICE_ID_100=price_...
 
 # App URL (for redirect URLs)
 NEXT_PUBLIC_APP_URL=http://localhost:3000

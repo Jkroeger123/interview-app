@@ -9,6 +9,7 @@ import {
 import { cn } from "@/lib/utils";
 import { CallControlBar } from "./call-control-bar";
 import { AvatarDisplay } from "./avatar-display";
+import { AgentStateIndicator } from "./agent-state-indicator";
 import { toast } from "sonner";
 import { Loader2, CheckCircle2 } from "lucide-react";
 
@@ -136,11 +137,16 @@ export function CallSession({
       {/* Interview status indicator */}
       {sessionStarted && interviewerJoined && (
         <div className="fixed top-20 left-1/2 -translate-x-1/2 z-30">
-          <div className="flex items-center gap-2 rounded-full bg-green-500/10 border border-green-500/20 px-4 py-2 backdrop-blur-sm">
-            <CheckCircle2 className="size-4 text-green-600" />
-            <span className="text-sm font-medium text-green-600">
-              Interview In Progress
-            </span>
+          <div className="flex flex-col items-center gap-3">
+            {/* Interview In Progress Badge */}
+            <div className="flex items-center gap-2 rounded-full bg-green-500/10 border border-green-500/20 px-4 py-2 backdrop-blur-sm">
+              <CheckCircle2 className="size-4 text-green-600" />
+              <span className="text-sm font-medium text-green-600">
+                Interview In Progress
+              </span>
+            </div>
+            {/* Agent State Indicator */}
+            <AgentStateIndicator />
           </div>
         </div>
       )}
