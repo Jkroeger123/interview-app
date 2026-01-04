@@ -1,6 +1,6 @@
 /**
  * Stripe Credit Pack Configuration
- * 
+ *
  * Simple credit packs: $1 per credit
  * - 10 credits = $10
  * - 50 credits = $50
@@ -38,6 +38,3 @@ export const CREDIT_PACKS = [
 ] as const;
 
 export type CreditPack = (typeof CREDIT_PACKS)[number];
-
-
-

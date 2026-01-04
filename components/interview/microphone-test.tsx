@@ -104,15 +104,21 @@ export function MicrophoneTest({ onTestComplete }: MicrophoneTestProps) {
         // After 20 consecutive frames (~0.3 seconds) of good volume, mark as success
         if (consecutiveGoodVolumeRef.current >= 20) {
           console.log("✅ Microphone test passed!");
+          // Set success status before stopping (prevents reset to idle)
           setMicStatus("success");
           micStatusRef.current = "success";
+          
+          // Notify parent component
           if (onTestComplete) {
             onTestComplete(true);
           }
-          // Stop monitoring after success
-          if (animationFrameRef.current) {
-            cancelAnimationFrame(animationFrameRef.current);
-          }
+          
+          // Stop the test automatically (cleanup mic stream and audio context)
+          stopMicTest();
+          
+          // Restore success status after cleanup
+          setMicStatus("success");
+          micStatusRef.current = "success";
           return;
         }
       } else if (normalizedVolume <= 8) {

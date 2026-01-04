@@ -89,7 +89,7 @@ export function ConfigureInterviewClient({ userCredits }: ConfigureInterviewClie
                 <Label htmlFor="duration" className="text-lg font-semibold">
                   Interview Duration
                 </Label>
-                <TooltipProvider>
+                <TooltipProvider delayDuration={0}>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button

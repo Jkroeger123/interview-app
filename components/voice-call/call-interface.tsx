@@ -62,6 +62,44 @@ export const CallInterface = forwardRef<
     mountAge: Date.now() - mountTimeRef.current,
   });
 
+  // Handle browser close/refresh - signal agent before leaving
+  useEffect(() => {
+    const room = roomRef.current;
+
+    const handleBeforeUnload = async (e: BeforeUnloadEvent) => {
+      // Only signal if we're connected
+      if (room.state === "connected") {
+        console.log("🔴 Browser closing - signaling agent to leave");
+
+        try {
+          // Send end_interview signal to agent
+          const encoder = new TextEncoder();
+          const data = encoder.encode(
+            JSON.stringify({
+              type: "end_interview",
+              reason: "browser_closed",
+            })
+          );
+
+          // Use sendBeacon as a best-effort attempt (works even as page unloads)
+          await room.localParticipant.publishData(data, { reliable: false });
+
+          // Small delay to allow message to send
+          // Note: This may not complete before browser closes, but we try
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        } catch (error) {
+          console.error("❌ Failed to signal agent on close:", error);
+        }
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, []);
+
   // Setup room event listeners ONCE (reactive - belongs in useEffect)
   useEffect(() => {
     const room = roomRef.current;

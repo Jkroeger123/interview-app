@@ -39,6 +39,21 @@ An AI-powered visa interview simulation platform that helps applicants prepare f
   - Proper project structure
   - Environment variable management
 
+## 📚 Documentation
+
+**Complete documentation is available in the [`docs/`](docs/) directory.**
+
+For detailed guides, see:
+
+- 📖 **[Documentation Index](docs/README.md)** - Complete documentation navigation
+- 🚀 **[Setup Guide](docs/setup/SETUP_GUIDE.md)** - Detailed setup instructions
+- 🏗️ **[Architecture Guide](docs/architecture/FINAL_ARCHITECTURE.md)** - System architecture
+- 💳 **[Stripe Setup](docs/stripe/STRIPE_QUICKSTART.md)** - Payment integration
+- 🤖 **[Agent Configuration](docs/agent/AGENT_UPDATE_GUIDE.md)** - LiveKit agent setup
+- 🎙️ **[LiveKit Setup](docs/livekit/LIVEKIT_SETUP.md)** - Real-time communication
+- 🚀 **[Deployment Checklist](docs/setup/PRE_DEPLOYMENT_CHECKLIST.md)** - Production deployment
+- 🌐 **[Domain Update Guide](docs/setup/DOMAIN_UPDATE_GUIDE.md)** - Changing domains
+
 ## 📋 Prerequisites
 
 Before you begin, ensure you have:

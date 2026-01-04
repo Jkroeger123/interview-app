@@ -26,12 +26,6 @@ export function TranscriptDisplay({ segments }: TranscriptDisplayProps) {
     segment.text.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const formatTime = (seconds: number): string => {
-    const minutes = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
-  };
-
   return (
     <Card>
       <CardHeader>
@@ -79,9 +73,6 @@ export function TranscriptDisplay({ segments }: TranscriptDisplayProps) {
                     <div className="flex items-center gap-2">
                       <span className="font-medium">
                         {segment.speaker === "agent" ? "Visa Officer" : "Applicant"}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {formatTime(segment.startTime)}
                       </span>
                     </div>
                     <p className="text-sm leading-relaxed">{segment.text}</p>
