@@ -119,7 +119,9 @@ export async function POST(req: Request) {
     // Check credits BEFORE creating room/interview (but don't deduct yet!)
     // Determine credits planned based on interview duration
     const duration = agentConfig?.duration || "standard"; // Default to standard
-    const selectedDuration = INTERVIEW_DURATIONS.find((d) => d.value === duration);
+    const selectedDuration = INTERVIEW_DURATIONS.find(
+      (d) => d.value === duration
+    );
     const creditsPlanned = selectedDuration?.credits || 10; // Default to 10 credits
 
     console.log(
@@ -155,7 +157,7 @@ export async function POST(req: Request) {
 
     // Create interview record BEFORE room (so we have the ID for auto-egress)
     const visaType = agentConfig?.visaType || "student";
-    
+
     // Create interview with creditsPlanned (not deducted yet!)
     let interviewId: string;
     try {
