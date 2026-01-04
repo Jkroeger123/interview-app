@@ -6,7 +6,8 @@ export interface AgentConfig {
   visaType: string;
   visaCode: string;
   visaName: string;
-  duration: number; // in minutes
+  duration: string; // duration value (e.g., "quick", "standard", "thorough")
+  durationMinutes: number; // duration in minutes for display
   focusAreas: string[];
   focusAreaLabels: string[];
   questionTopics: string[]; // High-level topics instead of all questions
@@ -68,7 +69,8 @@ export function buildAgentConfig(
     visaType: configuration.visaType,
     visaCode: visaType.code,
     visaName: visaType.name,
-    duration: duration.minutes,
+    duration: configuration.duration, // Pass the duration value (e.g., "quick", "standard")
+    durationMinutes: duration.minutes, // Pass the minutes for display
     focusAreas: configuration.focusAreas,
     focusAreaLabels,
     questionTopics,

@@ -191,11 +191,12 @@ Welcome to the complete documentation for the Interview App. This guide will hel
 
 **Location:** `docs/implementation/`
 
-| Document                                                                  | Description                                                |
-| ------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| [**IMPLEMENTATION_SUMMARY.md**](implementation/IMPLEMENTATION_SUMMARY.md) | Summary of all implementations and changes                 |
-| [**AGENT_STATE_INDICATOR.md**](implementation/AGENT_STATE_INDICATOR.md)   | Visual agent state indicator (listening/thinking/speaking) |
-| [**DEBUG_LOGS.md**](implementation/DEBUG_LOGS.md)                         | Debugging notes and common issues                          |
+| Document                                                                          | Description                                                |
+| --------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| [**IMPLEMENTATION_SUMMARY.md**](implementation/IMPLEMENTATION_SUMMARY.md)         | Summary of all implementations and changes                 |
+| [**AGENT_STATE_INDICATOR.md**](implementation/AGENT_STATE_INDICATOR.md)           | Visual agent state indicator (listening/thinking/speaking) |
+| [**TRANSCRIPT_TIMESTAMPS_FIX.md**](implementation/TRANSCRIPT_TIMESTAMPS_FIX.md)   | Fix for transcript timestamps showing 00:00                |
+| [**DEBUG_LOGS.md**](implementation/DEBUG_LOGS.md)                                 | Debugging notes and common issues                          |
 
 **When to Use:**
 

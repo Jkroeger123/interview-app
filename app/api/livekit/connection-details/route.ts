@@ -123,7 +123,7 @@ export async function POST(req: Request) {
     const creditsPlanned = selectedDuration?.credits || 10; // Default to 10 credits
 
     console.log(
-      `💳 API: Credits check - Planned: ${creditsPlanned}, Available: ${userCredits}`
+      `💳 API: Credits check - Duration: "${duration}", Selected: ${selectedDuration?.label || "NOT FOUND"}, Planned: ${creditsPlanned}, Available: ${userCredits}`
     );
 
     // Check if user has enough credits (must have credits to start)
