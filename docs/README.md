@@ -26,8 +26,11 @@ Welcome to the complete documentation for the Interview App. This guide will hel
 **New to the project?** Start here:
 
 1. **[Setup Guide](setup/SETUP_GUIDE.md)** - Initial setup and configuration
-2. **[Domain Update Guide](setup/DOMAIN_UPDATE_GUIDE.md)** - Configure for production deployment
-3. **[Pre-Deployment Checklist](setup/PRE_DEPLOYMENT_CHECKLIST.md)** - Final checks before going live
+
+**Deploying to production?** Use this:
+
+1. **⭐ [Production Checklist](setup/PRODUCTION_CHECKLIST.md)** - Step-by-step todo list (Vercel, Clerk, Stripe, etc.)
+2. **[Domain Update Guide](setup/DOMAIN_UPDATE_GUIDE.md)** - Detailed reference for all domain changes
 
 ---
 
@@ -38,14 +41,15 @@ Welcome to the complete documentation for the Interview App. This guide will hel
 | Document                                                             | Description                                         |
 | -------------------------------------------------------------------- | --------------------------------------------------- |
 | [**SETUP_GUIDE.md**](setup/SETUP_GUIDE.md)                           | Complete initial setup instructions for development |
-| [**PRE_DEPLOYMENT_CHECKLIST.md**](setup/PRE_DEPLOYMENT_CHECKLIST.md) | Production deployment checklist and configuration   |
-| [**DOMAIN_UPDATE_GUIDE.md**](setup/DOMAIN_UPDATE_GUIDE.md)           | Master guide for updating all domain references     |
+| [**PRODUCTION_CHECKLIST.md**](setup/PRODUCTION_CHECKLIST.md) ⭐      | Quick action checklist for production domain setup  |
+| [**DOMAIN_UPDATE_GUIDE.md**](setup/DOMAIN_UPDATE_GUIDE.md)           | Detailed guide for updating all domain references   |
+| [**PRE_DEPLOYMENT_CHECKLIST.md**](setup/PRE_DEPLOYMENT_CHECKLIST.md) | AWS, Stripe, and service configuration checklist    |
 
 **When to Use:**
 
 - Setting up local development environment
-- Preparing for production deployment
-- Migrating to a new domain
+- **⭐ Deploying to production (start with PRODUCTION_CHECKLIST.md)**
+- Migrating to a new domain or updating configurations
 
 ---
 

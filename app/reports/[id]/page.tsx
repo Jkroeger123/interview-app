@@ -10,7 +10,7 @@ import { AutoRefreshWrapper } from "@/components/reports/auto-refresh-wrapper";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Calendar, Clock } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, Download } from "lucide-react";
 import Link from "next/link";
 
 interface PageProps {
@@ -93,6 +93,14 @@ export default async function ReportPage({ params }: PageProps) {
               >
                 {interview.status}
               </Badge>
+              {hasReport && (
+                <Link href={`/api/reports/${id}/pdf`} target="_blank">
+                  <Button variant="default" size="sm">
+                    <Download className="mr-2 h-4 w-4" />
+                    Download PDF
+                  </Button>
+                </Link>
+              )}
             </div>
           </div>
         </div>
