@@ -15,7 +15,8 @@ export interface ReportReadyEmailData {
   interviewDate: string;
   interviewId: string;
   overallScore?: number;
-  recommendation?: string;
+  performanceRating?: number;
+  recommendation?: string; // Deprecated, kept for backward compatibility
 }
 
 export interface DeletionWarningEmailData {
@@ -42,6 +43,7 @@ export async function sendReportReadyEmail(data: ReportReadyEmailData) {
         interviewDate: data.interviewDate,
         reportUrl,
         overallScore: data.overallScore,
+        performanceRating: data.performanceRating,
         recommendation: data.recommendation,
       })
     );

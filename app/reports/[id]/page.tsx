@@ -50,6 +50,7 @@ export default async function ReportPage({ params }: PageProps) {
   const formattedTime = new Date(interview.startedAt).toLocaleTimeString("en-US", {
     hour: "2-digit",
     minute: "2-digit",
+    timeZoneName: "short",
   });
   const durationMinutes = interview.duration ? Math.floor(interview.duration / 60) : null;
 

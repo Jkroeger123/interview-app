@@ -18,7 +18,8 @@ interface ReportReadyEmailProps {
   interviewDate: string;
   reportUrl: string;
   overallScore?: number;
-  recommendation?: string;
+  performanceRating?: number;
+  recommendation?: string; // Deprecated, kept for backward compatibility
 }
 
 export const ReportReadyEmail = ({
@@ -27,6 +28,7 @@ export const ReportReadyEmail = ({
   interviewDate = "January 1, 2024",
   reportUrl = "https://vysa.app/reports/123",
   overallScore,
+  performanceRating,
   recommendation,
 }: ReportReadyEmailProps) => {
   const getRecommendationColor = (rec?: string) => {
@@ -55,6 +57,16 @@ export const ReportReadyEmail = ({
     }
   };
 
+  const getStars = (rating: number) => {
+    return "⭐".repeat(rating);
+  };
+
+  const getRatingColor = (rating: number) => {
+    if (rating >= 4) return "#16a34a"; // green
+    if (rating >= 3) return "#ca8a04"; // yellow
+    return "#dc2626"; // red
+  };
+
   return (
     <Html>
       <Head />
@@ -79,7 +91,17 @@ export const ReportReadyEmail = ({
               <Section style={scoreBox}>
                 <Text style={scoreLabel}>Overall Score</Text>
                 <Text style={scoreValue}>{overallScore}/100</Text>
-                {recommendation && (
+                {performanceRating && (
+                  <Text
+                    style={{
+                      ...recommendationBadge,
+                      backgroundColor: getRatingColor(performanceRating),
+                    }}
+                  >
+                    {getStars(performanceRating)} ({performanceRating}/5)
+                  </Text>
+                )}
+                {!performanceRating && recommendation && (
                   <Text
                     style={{
                       ...recommendationBadge,

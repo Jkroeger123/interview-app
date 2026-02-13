@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Star } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,7 +29,8 @@ type Interview = {
   duration: number | null;
   report?: {
     overallScore: number;
-    recommendation: string;
+    performanceRating?: number | null;
+    recommendation?: string | null;
   } | null;
 };
 
@@ -138,23 +140,19 @@ export function InterviewList({ interviews }: InterviewListProps) {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      {interview.report?.recommendation && (
-                        <Badge
-                          variant={
-                            interview.report.recommendation === "approve"
-                              ? "default"
-                              : interview.report.recommendation === "deny"
-                                ? "destructive"
-                                : "secondary"
-                          }
-                          className="capitalize"
-                        >
-                          {interview.report.recommendation === "approve"
-                            ? "Likely Approval"
-                            : interview.report.recommendation === "deny"
-                              ? "Needs Work"
-                              : "Further Review"}
-                        </Badge>
+                      {interview.report?.performanceRating && (
+                        <div className="flex items-center gap-1">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              className={`h-4 w-4 ${
+                                star <= (interview.report?.performanceRating || 0)
+                                  ? "fill-yellow-400 text-yellow-400"
+                                  : "text-gray-300"
+                              }`}
+                            />
+                          ))}
+                        </div>
                       )}
                       <Button
                         variant="ghost"

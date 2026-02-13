@@ -48,6 +48,7 @@ export async function GET(req: Request, { params }: RouteParams) {
   const formattedTime = new Date(interview.startedAt).toLocaleTimeString("en-US", {
     hour: "2-digit",
     minute: "2-digit",
+    timeZoneName: "short",
   });
   const durationMinutes = interview.duration ? Math.floor(interview.duration / 60) : null;
 

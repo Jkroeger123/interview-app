@@ -1,7 +1,8 @@
 import { UserButton } from "@clerk/nextjs";
 import Link from "next/link";
-import { FileText, History } from "lucide-react";
+import { FileText, History, Video } from "lucide-react";
 import { CreditBalanceWidget } from "@/components/credits/credit-balance-widget";
+import { Button } from "@/components/ui/button";
 
 export function Navbar() {
   return (
@@ -12,6 +13,12 @@ export function Navbar() {
         </Link>
 
         <div className="flex items-center gap-6">
+          <Link href="/select-visa">
+            <Button className="bg-blue-600 hover:bg-blue-700">
+              <Video className="w-4 h-4 mr-2" />
+              Start Interview
+            </Button>
+          </Link>
           <Link
             href="/documents"
             className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"

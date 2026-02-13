@@ -27,7 +27,7 @@ export function AgentStateIndicator() {
     },
     thinking: {
       icon: Brain,
-      label: "Thinking",
+      label: "Analyzing",
       helperText: "Please wait...",
       color: "bg-amber-500",
       textColor: "text-amber-700",

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { currentUser } from "@clerk/nextjs/server";
 import { getUserInterviews } from "@/server/interview-actions";
 import { Navbar } from "@/components/navbar";
+import { Footer } from "@/components/footer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Video } from "lucide-react";
 import Link from "next/link";
@@ -18,9 +19,9 @@ export default async function ReportsPage() {
   const interviews = interviewsResult.success ? interviewsResult.interviews || [] : [];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
-      <div className="container mx-auto px-4 py-8">
+      <div className="flex-1 container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Interview History</h1>
           <p className="text-muted-foreground">
@@ -51,6 +52,7 @@ export default async function ReportsPage() {
           <InterviewList interviews={interviews} />
         )}
       </div>
+      <Footer />
     </div>
   );
 }

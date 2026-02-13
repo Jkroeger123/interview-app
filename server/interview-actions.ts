@@ -216,7 +216,8 @@ export async function getUserInterviews() {
         report: {
           select: {
             overallScore: true,
-            recommendation: true,
+            performanceRating: true,
+            recommendation: true, // Keep for backward compatibility
           },
         },
       },

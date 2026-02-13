@@ -34,8 +34,11 @@ export async function POST(request: Request) {
   console.log("📥 Session report POST received");
   console.log("📥 Request method:", request.method);
   console.log("📥 Request headers:", Object.fromEntries(request.headers));
+  
+  let body: any;
+  
   try {
-    const body = await request.json();
+    body = await request.json();
     console.log("📥 Request body:", JSON.stringify(body, null, 2));
 
     const { roomName, sessionReport, recordingInfo, endedBy } = body;
@@ -359,7 +362,7 @@ export async function POST(request: Request) {
 
           console.log("✅ AI analysis generated successfully!");
           console.log(`  - Overall score: ${report.overallScore}`);
-          console.log(`  - Recommendation: ${report.recommendation}`);
+          console.log(`  - Performance rating: ${report.performanceRating} stars`);
           console.log(`  - Strengths count: ${report.strengths.length}`);
           console.log(`  - Weaknesses count: ${report.weaknesses.length}`);
           console.log("💾 Saving report to database...");
@@ -369,7 +372,8 @@ export async function POST(request: Request) {
             data: {
               interviewId: interview.id,
               overallScore: report.overallScore,
-              recommendation: report.recommendation,
+              performanceRating: report.performanceRating,
+              recommendation: null, // Deprecated field
               strengths: JSON.stringify(report.strengths),
               weaknesses: JSON.stringify(report.weaknesses),
               redFlags: JSON.stringify(report.redFlags),
@@ -402,7 +406,8 @@ export async function POST(request: Request) {
               }),
               interviewId: interview.id,
               overallScore: savedReport.overallScore,
-              recommendation: savedReport.recommendation,
+              performanceRating: savedReport.performanceRating || undefined,
+              recommendation: savedReport.recommendation || undefined,
             });
 
             if (emailResult.success) {
@@ -442,10 +447,15 @@ export async function POST(request: Request) {
     );
   } catch (error) {
     console.error("❌ Error processing session report:", error);
+    console.error("❌ Error stack:", error instanceof Error ? error.stack : "No stack");
+    console.error("❌ Room name from request:", body?.roomName || "unknown");
+    console.error("❌ Visa type from request:", body?.sessionReport?.visaType || "unknown");
+    
     return NextResponse.json(
       {
         error: "Failed to process session report",
         details: error instanceof Error ? error.message : String(error),
+        roomName: body?.roomName,
       },
       {
         status: 500,

@@ -58,7 +58,8 @@ export async function generateAIReport(interviewId: string) {
       data: {
         interviewId,
         overallScore: reportData.overallScore,
-        recommendation: reportData.recommendation,
+        performanceRating: reportData.performanceRating,
+        recommendation: null, // Deprecated field
         strengths: JSON.stringify(reportData.strengths),
         weaknesses: JSON.stringify(reportData.weaknesses),
         redFlags: JSON.stringify(reportData.redFlags),
@@ -113,7 +114,8 @@ export async function getReportByInterviewId(interviewId: string) {
     // Parse JSON fields
     const parsedReport = {
       ...report,
-      recommendation: report.recommendation as "approve" | "deny" | "further_review",
+      performanceRating: report.performanceRating as 1 | 2 | 3 | 4 | 5 | null,
+      recommendation: report.recommendation as "approve" | "deny" | "further_review" | null,
       strengths: JSON.parse(report.strengths) as string[],
       weaknesses: JSON.parse(report.weaknesses) as string[],
       redFlags: JSON.parse(report.redFlags) as Array<{

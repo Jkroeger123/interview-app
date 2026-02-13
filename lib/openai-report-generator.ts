@@ -2,7 +2,7 @@ import OpenAI from "openai";
 
 export interface AIReportData {
   overallScore: number;
-  recommendation: "approve" | "deny" | "further_review";
+  performanceRating: 1 | 2 | 3 | 4 | 5; // Star rating (1-5)
   strengths: string[];
   weaknesses: string[];
   redFlags: Array<{
@@ -27,15 +27,22 @@ export async function generateReport(
 ): Promise<AIReportData> {
   const systemPrompt = `You are an expert U.S. visa officer AI assistant tasked with analyzing mock visa interview transcripts. Your role is to provide constructive feedback to help applicants improve their interview performance.
 
-IMPORTANT: This is a PRACTICE interview to help applicants prepare. Your feedback should be:
+CRITICAL LEGAL DISCLAIMER: This is a PRACTICE interview ONLY. You are NOT predicting actual visa approval. You are rating the applicant's INTERVIEW PERFORMANCE, not their visa eligibility.
+
+Your feedback should be:
 - Constructive and educational
 - Specific and actionable
 - Fair but realistic
-- Focused on helping them succeed in a real interview
+- Focused on helping them improve their interview skills
 
 Analyze the interview transcript and provide detailed feedback covering:
 1. Overall performance score (0-100)
-2. Recommendation (approve/deny/further_review)
+2. Performance rating (1-5 stars) based on interview technique, NOT visa approval likelihood
+   - ⭐⭐⭐⭐⭐ (5 stars): Excellent interview performance
+   - ⭐⭐⭐⭐ (4 stars): Good interview performance
+   - ⭐⭐⭐ (3 stars): Satisfactory performance with room for improvement
+   - ⭐⭐ (2 stars): Needs significant improvement
+   - ⭐ (1 star): Poor performance, major concerns
 3. Key strengths demonstrated
 4. Areas for improvement (weaknesses)
 5. Red flags or concerning responses
@@ -48,8 +55,7 @@ Consider these evaluation criteria:
 - Evidence of genuine intent (study/visit/work as appropriate)
 - Financial preparedness
 - Ties to home country
-- English communication skills
-- Body language cues (if mentioned in transcript)
+- Communication skills
 - Completeness of answers
 - Ability to provide specific details when asked`;
 
@@ -61,7 +67,7 @@ ${transcript}
 Provide your analysis in the following JSON format:
 {
   "overallScore": <number 0-100>,
-  "recommendation": "<approve|deny|further_review>",
+  "performanceRating": <number 1-5>,
   "strengths": ["<strength1>", "<strength2>", ...],
   "weaknesses": ["<weakness1>", "<weakness2>", ...],
   "redFlags": [
@@ -81,12 +87,14 @@ Provide your analysis in the following JSON format:
 }
 
 Guidelines:
-- overallScore should reflect realistic visa interview standards
+- overallScore should reflect realistic visa interview performance standards (0-100)
+- performanceRating is 1-5 stars based on interview technique ONLY (NOT visa approval prediction)
 - Include 3-5 strengths
 - Include 3-5 weaknesses (areas for improvement)
 - Flag any major concerns as redFlags
 - Provide 5-10 timestamped comments highlighting key moments
-- Summary should be encouraging but honest, with concrete next steps`;
+- Summary should be encouraging but honest, with concrete next steps
+- REMEMBER: You are rating INTERVIEW PERFORMANCE, not predicting visa approval`;
 
   try {
     const openai = new OpenAI({
@@ -114,7 +122,7 @@ Guidelines:
     // Validate the report structure
     if (
       typeof report.overallScore !== "number" ||
-      !report.recommendation ||
+      typeof report.performanceRating !== "number" ||
       !Array.isArray(report.strengths) ||
       !Array.isArray(report.weaknesses) ||
       !Array.isArray(report.redFlags) ||
@@ -124,8 +132,9 @@ Guidelines:
       throw new Error("Invalid report structure from OpenAI");
     }
 
-    // Ensure score is within bounds
+    // Ensure scores are within bounds
     report.overallScore = Math.max(0, Math.min(100, report.overallScore));
+    report.performanceRating = Math.max(1, Math.min(5, Math.round(report.performanceRating))) as 1 | 2 | 3 | 4 | 5;
 
     console.log("✅ Generated AI report with score:", report.overallScore);
     return report;

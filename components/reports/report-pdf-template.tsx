@@ -185,7 +185,8 @@ interface TranscriptSegment {
 
 interface AIAnalysisData {
   overallScore: number;
-  recommendation: "approve" | "deny" | "further_review";
+  performanceRating?: 1 | 2 | 3 | 4 | 5 | null;
+  recommendation?: "approve" | "deny" | "further_review" | null;
   strengths: string[];
   weaknesses: string[];
   redFlags: Array<{
@@ -223,17 +224,27 @@ export function ReportPDFTemplate({
     return styles.scoreRed;
   };
 
-  const getRecommendationBadge = (recommendation: string) => {
-    switch (recommendation) {
-      case "approve":
-        return { text: "Likely Approval", style: styles.badgeGreen };
-      case "deny":
-        return { text: "Needs Improvement", style: styles.badgeRed };
-      case "further_review":
-        return { text: "Further Review", style: styles.badgeYellow };
-      default:
-        return { text: recommendation, style: styles.badge };
+  const getPerformanceRatingDisplay = (rating: number | null | undefined) => {
+    if (!rating) {
+      return { text: "Not Rated", style: styles.badge, stars: "" };
     }
+    
+    const starChar = "★";
+    const emptyStarChar = "☆";
+    const stars = starChar.repeat(rating) + emptyStarChar.repeat(5 - rating);
+    
+    const labels: Record<number, { text: string; style: any }> = {
+      5: { text: "Excellent Performance", style: styles.badgeGreen },
+      4: { text: "Good Performance", style: styles.badgeGreen },
+      3: { text: "Satisfactory", style: styles.badgeYellow },
+      2: { text: "Needs Improvement", style: styles.badgeYellow },
+      1: { text: "Significant Concerns", style: styles.badgeRed },
+    };
+    
+    return {
+      ...labels[rating],
+      stars
+    };
   };
 
   // Calculate start time from first transcript segment (Unix epoch timestamp)
@@ -248,7 +259,7 @@ export function ReportPDFTemplate({
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  const recommendationBadge = getRecommendationBadge(analysis.recommendation);
+  const performanceDisplay = getPerformanceRatingDisplay(analysis.performanceRating);
 
   return (
     <Document>
@@ -278,10 +289,14 @@ export function ReportPDFTemplate({
                 </Text>
               </View>
               <View style={styles.scoreBox}>
-                <Text style={styles.scoreLabel}>Recommendation</Text>
-                <View style={[styles.badge, recommendationBadge.style]}>
-                  <Text>{recommendationBadge.text}</Text>
+                <Text style={styles.scoreLabel}>Performance Rating</Text>
+                <Text style={{ fontSize: 16, marginBottom: 4 }}>{performanceDisplay.stars}</Text>
+                <View style={[styles.badge, performanceDisplay.style]}>
+                  <Text>{performanceDisplay.text}</Text>
                 </View>
+                <Text style={{ fontSize: 8, color: "#666", marginTop: 4, textAlign: "center" }}>
+                  Practice interview performance only
+                </Text>
               </View>
             </View>
           </View>

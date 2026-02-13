@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, CheckCircle2, Clock, TrendingUp, TrendingDown } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock, TrendingUp, TrendingDown, Star } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
@@ -12,7 +12,8 @@ import {
 
 interface AIAnalysisData {
   overallScore: number;
-  recommendation: "approve" | "deny" | "further_review";
+  performanceRating?: 1 | 2 | 3 | 4 | 5 | null;
+  recommendation?: "approve" | "deny" | "further_review" | null;
   strengths: string[];
   weaknesses: string[];
   redFlags: Array<{
@@ -38,17 +39,34 @@ export function AIAnalysisCard({ analysis }: AIAnalysisCardProps) {
     return "text-red-600";
   };
 
-  const getRecommendationBadge = (recommendation: string) => {
-    switch (recommendation) {
-      case "approve":
-        return <Badge className="bg-green-600">Likely Approval</Badge>;
-      case "deny":
-        return <Badge variant="destructive">Needs Improvement</Badge>;
-      case "further_review":
-        return <Badge variant="secondary">Further Review</Badge>;
-      default:
-        return <Badge>{recommendation}</Badge>;
-    }
+  const getPerformanceStars = (rating: number) => {
+    const labels = {
+      5: "Excellent Performance",
+      4: "Good Performance",
+      3: "Satisfactory Performance",
+      2: "Needs Improvement",
+      1: "Significant Concerns",
+    };
+    
+    return (
+      <div className="flex flex-col items-center gap-2">
+        <div className="flex gap-1">
+          {[1, 2, 3, 4, 5].map((star) => (
+            <Star
+              key={star}
+              className={`h-8 w-8 ${
+                star <= rating
+                  ? "fill-yellow-400 text-yellow-400"
+                  : "text-gray-300"
+              }`}
+            />
+          ))}
+        </div>
+        <p className="text-sm font-medium text-muted-foreground">
+          {labels[rating as keyof typeof labels]}
+        </p>
+      </div>
+    );
   };
 
   const getSeverityIcon = (severity: string) => {
@@ -82,10 +100,16 @@ export function AIAnalysisCard({ analysis }: AIAnalysisCardProps) {
               </div>
             </div>
             <div className="text-center space-y-2">
-              <p className="text-sm text-muted-foreground">Recommendation</p>
+              <p className="text-sm text-muted-foreground">Performance Rating</p>
               <div className="flex justify-center">
-                {getRecommendationBadge(analysis.recommendation)}
+                {analysis.performanceRating ? 
+                  getPerformanceStars(analysis.performanceRating) : 
+                  <p className="text-sm text-muted-foreground">Rating not available</p>
+                }
               </div>
+              <p className="text-xs text-muted-foreground italic mt-2">
+                This rating reflects your practice interview performance only, not visa approval likelihood.
+              </p>
             </div>
           </div>
         </CardContent>

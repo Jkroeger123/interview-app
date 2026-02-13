@@ -143,8 +143,9 @@ model InterviewReport {
   interviewId String @unique
 
   // Overall assessment
-  overallScore   Int // 0-100
-  recommendation String // "approve", "deny", "further_review"
+  overallScore        Int     // 0-100
+  performanceRating   Int?    // 1-5 stars (NEW: replaces recommendation)
+  recommendation      String? // DEPRECATED: kept for backward compatibility
 
   // Detailed analysis (JSON)
   strengths           String @db.Text // JSON array
