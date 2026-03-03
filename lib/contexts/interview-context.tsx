@@ -38,7 +38,7 @@ const InterviewContext = createContext<InterviewContextType | undefined>(
 
 const defaultConfiguration: InterviewConfiguration = {
   visaType: null,
-  duration: "quick",
+  duration: "basic",
   focusAreas: [],
   documents: [],
   interviewLanguage: "en", // Default to English

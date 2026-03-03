@@ -57,7 +57,6 @@ export async function generateAIReport(interviewId: string) {
     const report = await prisma.interviewReport.create({
       data: {
         interviewId,
-        overallScore: reportData.overallScore,
         performanceRating: reportData.performanceRating,
         recommendation: null, // Deprecated field
         strengths: JSON.stringify(reportData.strengths),

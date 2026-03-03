@@ -375,18 +375,29 @@ Real F-1 interviews are brief (3-7 minutes) and decisive. Focus on the most crit
 };
 
 export const INTERVIEW_DURATIONS = [
-  { value: "quick", label: "Quick - 5 minutes", credits: 5, minutes: 5 },
   {
-    value: "standard",
-    label: "Standard - 10 minutes",
-    credits: 10,
-    minutes: 10,
+    value: "basic",
+    label: "Basic",
+    description: "Surface-level questioning on key topics",
+    credits: 5,
+    minutes: 5,
+    depth: "surface",
   },
   {
-    value: "comprehensive",
-    label: "Comprehensive - 15 minutes",
+    value: "standard",
+    label: "Standard",
+    description: "Surface-level + deep dive into 1-2 key areas",
+    credits: 10,
+    minutes: 10,
+    depth: "moderate",
+  },
+  {
+    value: "in-depth",
+    label: "In-Depth",
+    description: "Comprehensive deep dive into all question bank sections",
     credits: 15,
     minutes: 15,
+    depth: "comprehensive",
   },
 ] as const;
 

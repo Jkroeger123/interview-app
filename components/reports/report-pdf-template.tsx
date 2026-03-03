@@ -184,9 +184,7 @@ interface TranscriptSegment {
 }
 
 interface AIAnalysisData {
-  overallScore: number;
   performanceRating?: 1 | 2 | 3 | 4 | 5 | null;
-  recommendation?: "approve" | "deny" | "further_review" | null;
   strengths: string[];
   weaknesses: string[];
   redFlags: Array<{
@@ -218,27 +216,46 @@ export function ReportPDFTemplate({
   analysis,
   transcriptSegments,
 }: ReportPDFTemplateProps) {
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return styles.scoreGreen;
-    if (score >= 60) return styles.scoreYellow;
-    return styles.scoreRed;
-  };
-
   const getPerformanceRatingDisplay = (rating: number | null | undefined) => {
     if (!rating) {
-      return { text: "Not Rated", style: styles.badge, stars: "" };
+      return { 
+        text: "Not Rated", 
+        description: "",
+        style: styles.badge, 
+        stars: "" 
+      };
     }
     
     const starChar = "★";
     const emptyStarChar = "☆";
     const stars = starChar.repeat(rating) + emptyStarChar.repeat(5 - rating);
     
-    const labels: Record<number, { text: string; style: any }> = {
-      5: { text: "Excellent Performance", style: styles.badgeGreen },
-      4: { text: "Good Performance", style: styles.badgeGreen },
-      3: { text: "Satisfactory", style: styles.badgeYellow },
-      2: { text: "Needs Improvement", style: styles.badgeYellow },
-      1: { text: "Significant Concerns", style: styles.badgeRed },
+    const labels: Record<number, { text: string; description: string; style: any }> = {
+      5: { 
+        text: "Strong Performance", 
+        description: "Excellent preparation and communication",
+        style: styles.badgeGreen 
+      },
+      4: { 
+        text: "Above Average Performance", 
+        description: "Good preparation with minor areas to improve",
+        style: styles.badgeGreen 
+      },
+      3: { 
+        text: "Adequate Performance", 
+        description: "Meets basic standards but needs improvement",
+        style: styles.badgeYellow 
+      },
+      2: { 
+        text: "Below Average Performance", 
+        description: "Significant gaps in preparation or communication",
+        style: styles.badgeYellow 
+      },
+      1: { 
+        text: "Weak Performance", 
+        description: "Major deficiencies requiring substantial improvement",
+        style: styles.badgeRed 
+      },
     };
     
     return {
@@ -277,27 +294,23 @@ export function ReportPDFTemplate({
           </Text>
         </View>
 
-        {/* Performance Score & Recommendation */}
+        {/* Performance Rating */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Interview Performance</Text>
+          <Text style={styles.sectionTitle}>Interview Performance Evaluation</Text>
           <View style={styles.card}>
-            <View style={styles.scoreContainer}>
-              <View style={styles.scoreBox}>
-                <Text style={styles.scoreLabel}>Overall Score</Text>
-                <Text style={[styles.scoreValue, getScoreColor(analysis.overallScore)]}>
-                  {analysis.overallScore}/100
-                </Text>
+            <View style={{ alignItems: "center", paddingVertical: 15 }}>
+              <Text style={styles.scoreLabel}>Performance Rating</Text>
+              <Text style={{ fontSize: 24, marginVertical: 8 }}>{performanceDisplay.stars}</Text>
+              <View style={[styles.badge, performanceDisplay.style, { marginBottom: 6 }]}>
+                <Text>{performanceDisplay.text}</Text>
               </View>
-              <View style={styles.scoreBox}>
-                <Text style={styles.scoreLabel}>Performance Rating</Text>
-                <Text style={{ fontSize: 16, marginBottom: 4 }}>{performanceDisplay.stars}</Text>
-                <View style={[styles.badge, performanceDisplay.style]}>
-                  <Text>{performanceDisplay.text}</Text>
-                </View>
-                <Text style={{ fontSize: 8, color: "#666", marginTop: 4, textAlign: "center" }}>
-                  Practice interview performance only
-                </Text>
-              </View>
+              <Text style={{ fontSize: 9, color: "#666", textAlign: "center", maxWidth: "80%" }}>
+                {performanceDisplay.description}
+              </Text>
+              <Text style={{ fontSize: 8, color: "#999", marginTop: 10, textAlign: "center", fontStyle: "italic" }}>
+                This evaluation reflects interview performance based on established guidelines.
+                {"\n"}It does not predict or speculate on visa application outcomes.
+              </Text>
             </View>
           </View>
         </View>

@@ -12,7 +12,7 @@ export default async function ConfigureInterviewPage() {
     redirect("/sign-in");
   }
 
-  // Fetch user credits on the server (no useEffect needed!)
+  // Fetch user credits on the server
   const userCredits = await getUserCredits();
 
   return (

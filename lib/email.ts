@@ -14,7 +14,6 @@ export interface ReportReadyEmailData {
   visaType: string;
   interviewDate: string;
   interviewId: string;
-  overallScore?: number;
   performanceRating?: number;
   recommendation?: string; // Deprecated, kept for backward compatibility
 }
@@ -42,7 +41,6 @@ export async function sendReportReadyEmail(data: ReportReadyEmailData) {
         visaType: data.visaType,
         interviewDate: data.interviewDate,
         reportUrl,
-        overallScore: data.overallScore,
         performanceRating: data.performanceRating,
         recommendation: data.recommendation,
       })

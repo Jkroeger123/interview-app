@@ -86,7 +86,7 @@ model Interview {
   clerkId   String
   roomName  String    @unique
   visaType  String
-  status    String    @default("in_progress") // "in_progress", "completed", "failed"
+  status    String    @default("in_progress") // "draft", "in_progress", "completed", "failed"
   startedAt DateTime  @default(now())
   endedAt   DateTime?
   duration  Int? // seconds
@@ -113,6 +113,7 @@ model Interview {
   user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   report             InterviewReport?
   transcriptSegments TranscriptSegment[]
+  documents          InterviewDocument[] // NEW: Documents uploaded for this specific interview
 
   @@index([userId])
   @@index([clerkId])
@@ -143,8 +144,8 @@ model InterviewReport {
   interviewId String @unique
 
   // Overall assessment
-  overallScore        Int     // 0-100
-  performanceRating   Int?    // 1-5 stars (NEW: replaces recommendation)
+  overallScore        Int?    // DEPRECATED: No longer generated (kept for backward compatibility)
+  performanceRating   Int?    // 1-5 stars - Primary performance indicator
   recommendation      String? // DEPRECATED: kept for backward compatibility
 
   // Detailed analysis (JSON)
@@ -198,4 +199,30 @@ model CreditLedger {
   @@index([userId])
   @@index([createdAt])
   @@index([type])
+}
+
+// Unstructured documents uploaded for specific interview sessions
+// Unlike UserDocument (structured per visa type), these are ad-hoc uploads
+model InterviewDocument {
+  id           String   @id @default(uuid())
+  interviewId  String
+  userId       String
+  clerkId      String
+  filename     String
+  ragieFileId  String   @unique // Ragie's file ID for retrieval
+  fileSize     Int // Size in bytes
+  mimeType     String // e.g., "application/pdf"
+  
+  // AI-extracted metadata (filled after Ragie processing)
+  detectedType String? // AI-detected document type (e.g., "DS-160", "Resume", "I-20")
+  extractedText String? @db.Text // Key extracted information
+  
+  status       String   @default("processing") // "processing", "ready", "failed"
+  uploadedAt   DateTime @default(now())
+  
+  interview Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+  
+  @@index([interviewId])
+  @@index([userId])
+  @@index([ragieFileId])
 }

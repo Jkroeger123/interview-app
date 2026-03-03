@@ -14,6 +14,78 @@ const AWS_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID;
 const AWS_SECRET_ACCESS_KEY = process.env.AWS_SECRET_ACCESS_KEY;
 
 /**
+ * Create or get a draft interview for document uploads during configuration
+ * This allows users to upload documents before the interview starts
+ */
+export async function getOrCreateDraftInterview(visaType: string) {
+  try {
+    const user = await currentUser();
+    if (!user) {
+      throw new Error("Unauthorized");
+    }
+
+    // Get or create user in database
+    let dbUser = await prisma.user.findUnique({
+      where: { clerkId: user.id },
+    });
+
+    if (!dbUser) {
+      dbUser = await prisma.user.create({
+        data: {
+          clerkId: user.id,
+          email:
+            user.emailAddresses[0]?.emailAddress || `${user.id}@unknown.com`,
+          firstName: user.firstName || undefined,
+          lastName: user.lastName || undefined,
+          imageUrl: user.imageUrl || undefined,
+        },
+      });
+    }
+
+    // Look for existing draft interview for this user and visa type
+    const existingDraft = await prisma.interview.findFirst({
+      where: {
+        userId: dbUser.id,
+        visaType,
+        status: "draft",
+      },
+      orderBy: { startedAt: "desc" },
+    });
+
+    if (existingDraft) {
+      console.log("✅ Found existing draft interview:", existingDraft.id);
+      return { success: true, interview: existingDraft };
+    }
+
+    // Create new draft interview with temporary room name
+    const tempRoomName = `draft_${visaType}_${Date.now()}`;
+    const interview = await prisma.interview.create({
+      data: {
+        userId: dbUser.id,
+        clerkId: user.id,
+        roomName: tempRoomName,
+        visaType,
+        status: "draft", // Draft status - not started yet
+        recordingStatus: "pending",
+        transcriptStatus: "pending",
+      },
+    });
+
+    console.log("✅ Created draft interview:", interview.id);
+    return { success: true, interview };
+  } catch (error) {
+    console.error("❌ Error creating draft interview:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to create draft interview",
+    };
+  }
+}
+
+/**
  * Create a new interview record when a call starts
  */
 export async function createInterview(
@@ -215,7 +287,6 @@ export async function getUserInterviews() {
       include: {
         report: {
           select: {
-            overallScore: true,
             performanceRating: true,
             recommendation: true, // Keep for backward compatibility
           },

@@ -11,9 +11,7 @@ import {
 } from "@/components/ui/accordion";
 
 interface AIAnalysisData {
-  overallScore: number;
   performanceRating?: 1 | 2 | 3 | 4 | 5 | null;
-  recommendation?: "approve" | "deny" | "further_review" | null;
   strengths: string[];
   weaknesses: string[];
   redFlags: Array<{
@@ -33,28 +31,30 @@ interface AIAnalysisCardProps {
 }
 
 export function AIAnalysisCard({ analysis }: AIAnalysisCardProps) {
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return "text-green-600";
-    if (score >= 60) return "text-yellow-600";
-    return "text-red-600";
-  };
-
   const getPerformanceStars = (rating: number) => {
     const labels = {
-      5: "Excellent Performance",
-      4: "Good Performance",
-      3: "Satisfactory Performance",
-      2: "Needs Improvement",
-      1: "Significant Concerns",
+      5: "Strong Performance",
+      4: "Above Average Performance",
+      3: "Adequate Performance",
+      2: "Below Average Performance",
+      1: "Weak Performance",
+    };
+    
+    const descriptions = {
+      5: "Demonstrates excellent preparation and communication",
+      4: "Shows good preparation with minor areas to improve",
+      3: "Meets basic standards but needs improvement",
+      2: "Significant gaps in preparation or communication",
+      1: "Major deficiencies requiring substantial improvement",
     };
     
     return (
-      <div className="flex flex-col items-center gap-2">
+      <div className="flex flex-col items-center gap-3">
         <div className="flex gap-1">
           {[1, 2, 3, 4, 5].map((star) => (
             <Star
               key={star}
-              className={`h-8 w-8 ${
+              className={`h-10 w-10 ${
                 star <= rating
                   ? "fill-yellow-400 text-yellow-400"
                   : "text-gray-300"
@@ -62,9 +62,14 @@ export function AIAnalysisCard({ analysis }: AIAnalysisCardProps) {
             />
           ))}
         </div>
-        <p className="text-sm font-medium text-muted-foreground">
-          {labels[rating as keyof typeof labels]}
-        </p>
+        <div className="text-center">
+          <p className="text-lg font-semibold text-foreground">
+            {labels[rating as keyof typeof labels]}
+          </p>
+          <p className="text-sm text-muted-foreground mt-1">
+            {descriptions[rating as keyof typeof descriptions]}
+          </p>
+        </div>
       </div>
     );
   };
@@ -82,36 +87,28 @@ export function AIAnalysisCard({ analysis }: AIAnalysisCardProps) {
 
   return (
     <div className="space-y-6">
-      {/* Overall Score and Recommendation */}
+      {/* Performance Rating */}
       <Card>
         <CardHeader>
-          <CardTitle>Interview Performance</CardTitle>
-          <CardDescription>AI-generated analysis of your interview</CardDescription>
+          <CardTitle>Interview Performance Evaluation</CardTitle>
+          <CardDescription>
+            Professional assessment of your interview performance based on established criteria
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="text-center space-y-2">
-              <p className="text-sm text-muted-foreground">Overall Score</p>
-              <div
-                className={`text-5xl font-bold ${getScoreColor(analysis.overallScore)}`}
-              >
-                {analysis.overallScore}
-                <span className="text-2xl">/100</span>
-              </div>
-            </div>
-            <div className="text-center space-y-2">
-              <p className="text-sm text-muted-foreground">Performance Rating</p>
-              <div className="flex justify-center">
-                {analysis.performanceRating ? 
-                  getPerformanceStars(analysis.performanceRating) : 
-                  <p className="text-sm text-muted-foreground">Rating not available</p>
-                }
-              </div>
-              <p className="text-xs text-muted-foreground italic mt-2">
-                This rating reflects your practice interview performance only, not visa approval likelihood.
+          <div className="flex justify-center py-6">
+            {analysis.performanceRating ? (
+              getPerformanceStars(analysis.performanceRating)
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Performance rating not available
               </p>
-            </div>
+            )}
           </div>
+          <p className="text-xs text-center text-muted-foreground italic mt-4 border-t pt-4">
+            This evaluation reflects interview performance quality based on established guidelines. 
+            It does not predict or speculate on visa application outcomes.
+          </p>
         </CardContent>
       </Card>
 

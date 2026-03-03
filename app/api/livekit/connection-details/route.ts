@@ -13,6 +13,7 @@ import type { ConnectionDetails } from "@/lib/types/livekit";
 import { createInterview } from "@/server/interview-actions";
 import { prisma } from "@/lib/prisma";
 import { INTERVIEW_DURATIONS } from "@/lib/visa-types";
+import { getInterviewDocumentContext } from "@/lib/ragie-client";
 
 const API_KEY = process.env.LIVEKIT_API_KEY;
 const API_SECRET = process.env.LIVEKIT_API_SECRET;
@@ -158,41 +159,98 @@ export async function POST(req: Request) {
     // Create interview record BEFORE room (so we have the ID for auto-egress)
     const visaType = agentConfig?.visaType || "student";
 
+    // Check for existing draft interview with documents
+    const draftInterview = await prisma.interview.findFirst({
+      where: {
+        userId,
+        visaType,
+        status: "draft",
+      },
+      include: {
+        documents: true,
+      },
+      orderBy: { startedAt: "desc" },
+    });
+
     // Create interview with creditsPlanned (not deducted yet!)
     let interviewId: string;
+    let hasDocuments = false;
     try {
       // Calculate expiration date (7 days from now)
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 7);
 
-      const interview = await prisma.interview.create({
-        data: {
-          userId,
-          clerkId: participantIdentity,
-          roomName,
-          visaType,
-          creditsPlanned, // Store planned credits
-          creditsDeducted: null, // Will be set after interview completion
-          endedBy: null, // Will be set when interview ends
-          expiresAt,
-          status: "in_progress",
-          recordingStatus: "pending",
-          transcriptStatus: "pending",
-        },
-      });
+      if (draftInterview && draftInterview.documents.length > 0) {
+        // Convert draft to in_progress interview
+        const interview = await prisma.interview.update({
+          where: { id: draftInterview.id },
+          data: {
+            roomName, // Update with actual room name
+            creditsPlanned,
+            creditsDeducted: null,
+            endedBy: null,
+            expiresAt,
+            status: "in_progress",
+            recordingStatus: "pending",
+            transcriptStatus: "pending",
+          },
+        });
 
-      interviewId = interview.id;
-      console.log(
-        `✅ API: Created interview record: ${interviewId} (${creditsPlanned} credits planned, will charge after completion)`
-      );
+        interviewId = interview.id;
+        hasDocuments = true;
+        console.log(
+          `✅ API: Converted draft interview to in_progress: ${interviewId} (${draftInterview.documents.length} documents attached)`
+        );
+      } else {
+        // Create new interview (no draft or no documents)
+        const interview = await prisma.interview.create({
+          data: {
+            userId,
+            clerkId: participantIdentity,
+            roomName,
+            visaType,
+            creditsPlanned, // Store planned credits
+            creditsDeducted: null, // Will be set after interview completion
+            endedBy: null, // Will be set when interview ends
+            expiresAt,
+            status: "in_progress",
+            recordingStatus: "pending",
+            transcriptStatus: "pending",
+          },
+        });
+
+        interviewId = interview.id;
+        console.log(
+          `✅ API: Created interview record: ${interviewId} (${creditsPlanned} credits planned, will charge after completion)`
+        );
+      }
     } catch (error) {
       console.error("❌ API: Failed to create interview:", error);
       return new NextResponse("Failed to create interview", { status: 500 });
     }
 
+    // Fetch document context if documents were uploaded
+    let documentContext = "";
+    if (hasDocuments) {
+      console.log("📄 Fetching document context from Ragie...");
+      documentContext = await getInterviewDocumentContext(interviewId);
+      if (documentContext) {
+        console.log(
+          `✅ Document context retrieved: ${documentContext.length} chars`
+        );
+      }
+    }
+
     if (agentConfig) {
       try {
-        const metadataString = JSON.stringify(agentConfig);
+        // Add document context to agent config
+        const enhancedAgentConfig = {
+          ...agentConfig,
+          documentContext: documentContext || undefined,
+          hasDocuments: hasDocuments,
+        };
+
+        const metadataString = JSON.stringify(enhancedAgentConfig);
 
         await roomService.createRoom({
           name: roomName,
@@ -203,7 +261,9 @@ export async function POST(req: Request) {
 
         // Small delay to ensure metadata propagates before agent joins
         await new Promise((resolve) => setTimeout(resolve, 200));
-        console.log("✅ API: Room created with metadata");
+        console.log(
+          `✅ API: Room created with metadata${hasDocuments ? " (includes document context)" : ""}`
+        );
       } catch (error: any) {
         console.error("❌ API: Room creation failed:", error.message);
         return new NextResponse("Failed to create room", { status: 500 });

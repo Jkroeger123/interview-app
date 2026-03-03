@@ -221,23 +221,40 @@ CRON_SECRET=... (for cron jobs)
 
 **If using another platform:**
 
-Set up external cron service (e.g., cron-job.org):
+**Vercel Cron Job (Automatic):**
 
-- URL: `https://yourdomain.com/api/cron/check-expiring-interviews`
-- Schedule: Every 6 hours
-- Method: GET
-- Header: `Authorization: Bearer YOUR_CRON_SECRET`
-
-**What it does:**
-
+The `vercel.json` file configures automatic daily cleanup:
+- Runs at 2 AM UTC daily
 - Sends warning emails 24h before expiration
 - Deletes expired interview records (videos auto-delete via S3)
 
+**Setup Steps:**
+
+1. Set `CRON_SECRET` in Vercel Environment Variables:
+   ```bash
+   # Generate a secret
+   openssl rand -base64 32
+   ```
+
+2. Add to Vercel Dashboard → Settings → Environment Variables:
+   - Name: `CRON_SECRET`
+   - Value: Your generated secret
+   - Environments: Production, Preview, Development
+
+3. Deploy - Vercel automatically registers the cron job from `vercel.json`
+
 **Test Checklist:**
 
-- [ ] Cron job configured
-- [ ] `CRON_SECRET` set in environment
-- [ ] Test endpoint manually with correct auth header
+- [ ] `CRON_SECRET` set in Vercel environment variables
+- [ ] `vercel.json` deployed to production
+- [ ] Cron job appears in Vercel Dashboard → Cron Jobs tab
+- [ ] Test endpoint manually: 
+  ```bash
+  curl -X GET https://yourdomain.com/api/cron/check-expiring-interviews \
+    -H "Authorization: Bearer YOUR_CRON_SECRET"
+  ```
+
+**See:** `docs/infrastructure/CRON_JOB_SETUP.md` for detailed setup and troubleshooting
 
 ---
 

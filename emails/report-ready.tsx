@@ -17,7 +17,6 @@ interface ReportReadyEmailProps {
   visaType: string;
   interviewDate: string;
   reportUrl: string;
-  overallScore?: number;
   performanceRating?: number;
   recommendation?: string; // Deprecated, kept for backward compatibility
 }
@@ -27,7 +26,6 @@ export const ReportReadyEmail = ({
   visaType = "Student Visa (F-1)",
   interviewDate = "January 1, 2024",
   reportUrl = "https://vysa.app/reports/123",
-  overallScore,
   performanceRating,
   recommendation,
 }: ReportReadyEmailProps) => {
@@ -67,6 +65,17 @@ export const ReportReadyEmail = ({
     return "#dc2626"; // red
   };
 
+  const getRatingText = (rating: number) => {
+    const labels: Record<number, string> = {
+      5: "Strong Performance",
+      4: "Above Average Performance",
+      3: "Adequate Performance",
+      2: "Below Average Performance",
+      1: "Weak Performance",
+    };
+    return labels[rating] || "Performance Rating";
+  };
+
   return (
     <Html>
       <Head />
@@ -87,30 +96,21 @@ export const ReportReadyEmail = ({
               interview from <strong>{interviewDate}</strong>.
             </Text>
 
-            {overallScore !== undefined && (
+            {performanceRating && (
               <Section style={scoreBox}>
-                <Text style={scoreLabel}>Overall Score</Text>
-                <Text style={scoreValue}>{overallScore}/100</Text>
-                {performanceRating && (
-                  <Text
-                    style={{
-                      ...recommendationBadge,
-                      backgroundColor: getRatingColor(performanceRating),
-                    }}
-                  >
-                    {getStars(performanceRating)} ({performanceRating}/5)
-                  </Text>
-                )}
-                {!performanceRating && recommendation && (
-                  <Text
-                    style={{
-                      ...recommendationBadge,
-                      backgroundColor: getRecommendationColor(recommendation),
-                    }}
-                  >
-                    {getRecommendationText(recommendation)}
-                  </Text>
-                )}
+                <Text style={scoreLabel}>Performance Rating</Text>
+                <Text style={scoreValue}>{getStars(performanceRating)}</Text>
+                <Text
+                  style={{
+                    ...recommendationBadge,
+                    backgroundColor: getRatingColor(performanceRating),
+                  }}
+                >
+                  {getRatingText(performanceRating)}
+                </Text>
+                <Text style={{ ...scoreLabel, marginTop: "12px", textTransform: "none" as const, fontSize: "12px" }}>
+                  Interview performance based on established criteria
+                </Text>
               </Section>
             )}
 

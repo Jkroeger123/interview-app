@@ -28,7 +28,6 @@ type Interview = {
   startedAt: Date;
   duration: number | null;
   report?: {
-    overallScore: number;
     performanceRating?: number | null;
     recommendation?: string | null;
   } | null;
@@ -58,19 +57,21 @@ export function InterviewList({ interviews }: InterviewListProps) {
     return `${minutes} min`;
   };
 
-  const getScoreBadge = (score: number | null | undefined) => {
-    if (score === null || score === undefined) return null;
+  const getPerformanceBadge = (rating: number | null | undefined) => {
+    if (rating === null || rating === undefined) return null;
 
     const colorClass =
-      score >= 80
+      rating >= 4
         ? "bg-green-100 text-green-800 border-green-200"
-        : score >= 60
+        : rating >= 3
           ? "bg-yellow-100 text-yellow-800 border-yellow-200"
           : "bg-red-100 text-red-800 border-red-200";
 
+    const stars = "⭐".repeat(rating);
+
     return (
       <Badge variant="outline" className={colorClass}>
-        Score: {score}/100
+        {stars}
       </Badge>
     );
   };
@@ -125,8 +126,8 @@ export function InterviewList({ interviews }: InterviewListProps) {
                         >
                           {interview.status}
                         </Badge>
-                        {interview.report?.overallScore !== undefined &&
-                          getScoreBadge(interview.report.overallScore)}
+                        {interview.report?.performanceRating !== undefined &&
+                          getPerformanceBadge(interview.report.performanceRating)}
                       </div>
                       <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                         <div className="flex items-center gap-1">

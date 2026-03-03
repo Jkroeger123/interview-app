@@ -22,9 +22,10 @@ import {
 } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, ChevronRight, Coins, Info, AlertCircle } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { LanguageSelector } from "@/components/interview/language-selector";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { InterviewDocumentUpload } from "@/components/interview/interview-document-upload";
 import Link from "next/link";
 
 interface ConfigureInterviewClientProps {
@@ -34,6 +35,8 @@ interface ConfigureInterviewClientProps {
 export function ConfigureInterviewClient({ userCredits }: ConfigureInterviewClientProps) {
   const router = useRouter();
   const { configuration, setDuration, toggleFocusArea } = useInterview();
+  const [draftInterviewId, setDraftInterviewId] = useState<string | null>(null);
+  const [isLoadingDraft, setIsLoadingDraft] = useState(false);
 
   // Redirect if no visa type is selected
   useEffect(() => {
@@ -41,6 +44,34 @@ export function ConfigureInterviewClient({ userCredits }: ConfigureInterviewClie
       router.push("/select-visa");
     }
   }, [configuration.visaType, router]);
+
+  // Create or get draft interview for document uploads
+  useEffect(() => {
+    if (!configuration.visaType || draftInterviewId) return;
+
+    const fetchDraftInterview = async () => {
+      setIsLoadingDraft(true);
+      try {
+        const response = await fetch("/api/interviews/draft", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ visaType: configuration.visaType }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setDraftInterviewId(data.interview.id);
+          console.log("✅ Draft interview ready:", data.interview.id);
+        }
+      } catch (error) {
+        console.error("Error fetching draft interview:", error);
+      } finally {
+        setIsLoadingDraft(false);
+      }
+    };
+
+    fetchDraftInterview();
+  }, [configuration.visaType, draftInterviewId]);
 
   if (!configuration.visaType) {
     return null;
@@ -57,7 +88,7 @@ export function ConfigureInterviewClient({ userCredits }: ConfigureInterviewClie
 
   const handleNext = () => {
     if (!hasEnoughCredits) return;
-    // Skip document upload - go straight to interview ready
+    // Go to interview ready page
     router.push("/interview-ready");
   };
 
@@ -83,55 +114,68 @@ export function ConfigureInterviewClient({ userCredits }: ConfigureInterviewClie
 
       <Card className="p-8">
         <div className="space-y-8">
-          {/* Interview Duration */}
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <Label htmlFor="duration" className="text-lg font-semibold">
-                  Interview Duration
-                </Label>
-                <TooltipProvider delayDuration={0}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        className="inline-flex items-center justify-center rounded-full hover:bg-accent transition-colors p-1"
-                      >
-                        <Info className="size-4 text-muted-foreground" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="right" className="max-w-xs">
-                      <div className="space-y-2 text-sm">
-                        <p>
-                          <strong>Quick (5 min):</strong> Brief overview of key
-                          topics - ideal for testing specific areas
-                        </p>
-                        <p>
-                          <strong>Standard (10 min):</strong> Balanced practice
-                          covering main questions - recommended for most users
-                        </p>
-                        <p>
-                          <strong>Comprehensive (15 min):</strong> In-depth
-                          interview covering all topics - best for thorough
-                          preparation
-                        </p>
-                      </div>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-              <Select
-                value={configuration.duration}
-                onValueChange={(value) => setDuration(value as any)}
-              >
-                <SelectTrigger id="duration" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {INTERVIEW_DURATIONS.map((duration) => (
-                    <SelectItem key={duration.value} value={duration.value}>
+          {/* Interview Level */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <Label htmlFor="duration" className="text-lg font-semibold">
+                Interview Level
+            </Label>
+              <TooltipProvider delayDuration={0}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      className="inline-flex items-center justify-center rounded-full hover:bg-accent transition-colors p-1"
+                    >
+                      <Info className="size-4 text-muted-foreground" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="max-w-xs">
+                    <div className="space-y-3 text-sm">
+                      <p>
+                        <strong>Basic:</strong> Surface-level questioning on key
+                        topics. Quick overview to test basic preparedness (~5 min).
+                      </p>
+                      <p>
+                        <strong>Standard:</strong> Surface-level questions plus
+                        deep dive into 1-2 key areas. Recommended for most users
+                        (~10 min).
+                      </p>
+                      <p>
+                        <strong>In-Depth:</strong> Comprehensive deep dive into
+                        all question bank sections. Best for thorough preparation
+                        (~15 min).
+                      </p>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            <Select
+              value={configuration.duration}
+              onValueChange={(value) => setDuration(value as any)}
+            >
+              <SelectTrigger id="duration" className="w-full">
+                <SelectValue>
+                  {selectedDuration && (
+                    <div className="flex items-center gap-2">
+                      <span>{selectedDuration.label}</span>
+                      {selectedDuration.value === "standard" && (
+                        <Badge variant="secondary" className="text-xs">
+                          Recommended
+                        </Badge>
+                      )}
+                    </div>
+                  )}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {INTERVIEW_DURATIONS.map((duration) => (
+                  <SelectItem key={duration.value} value={duration.value}>
+                    <div className="flex flex-col gap-1">
                       <div className="flex items-center gap-2">
-                        <span>
-                          {duration.label} ({duration.credits} credits)
+                        <span className="font-medium">
+                          {duration.label}
                         </span>
                         {duration.value === "standard" && (
                           <Badge variant="secondary" className="text-xs">
@@ -139,17 +183,26 @@ export function ConfigureInterviewClient({ userCredits }: ConfigureInterviewClie
                           </Badge>
                         )}
                       </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {selectedDuration && (
-                <p className="text-sm text-muted-foreground mt-2 flex items-center gap-1">
+                      <span className="text-xs text-muted-foreground">
+                        {duration.description} • {duration.credits} credits
+                      </span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {selectedDuration && (
+              <div className="mt-2 space-y-1">
+                <p className="text-sm text-muted-foreground flex items-center gap-1">
                   <Coins className="size-4" />
-                  This interview will cost {selectedDuration.credits} credits
+                  {selectedDuration.credits} credits • ~{selectedDuration.minutes} minutes
                 </p>
-              )}
-            </div>
+                <p className="text-xs text-muted-foreground">
+                  {selectedDuration.description}
+                </p>
+              </div>
+            )}
+          </div>
 
           {/* Interview Language */}
           <LanguageSelector />
@@ -193,6 +246,13 @@ export function ConfigureInterviewClient({ userCredits }: ConfigureInterviewClie
           </div>
         </div>
       </Card>
+
+      {/* Document Upload Section */}
+      {draftInterviewId && !isLoadingDraft && (
+        <div className="mt-6">
+          <InterviewDocumentUpload interviewId={draftInterviewId} />
+        </div>
+      )}
 
       {/* Insufficient Credits Warning */}
       {!hasEnoughCredits && (

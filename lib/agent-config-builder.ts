@@ -6,8 +6,9 @@ export interface AgentConfig {
   visaType: string;
   visaCode: string;
   visaName: string;
-  duration: string; // duration value (e.g., "quick", "standard", "thorough")
+  duration: string; // duration value (e.g., "basic", "standard", "in-depth")
   durationMinutes: number; // duration in minutes for display
+  depth: string; // questioning depth: "surface", "moderate", "comprehensive"
   focusAreas: string[];
   focusAreaLabels: string[];
   questionTopics: string[]; // High-level topics instead of all questions
@@ -69,8 +70,9 @@ export function buildAgentConfig(
     visaType: configuration.visaType,
     visaCode: visaType.code,
     visaName: visaType.name,
-    duration: configuration.duration, // Pass the duration value (e.g., "quick", "standard")
+    duration: configuration.duration, // Pass the duration value (e.g., "basic", "standard", "in-depth")
     durationMinutes: duration.minutes, // Pass the minutes for display
+    depth: duration.depth, // Pass the questioning depth level
     focusAreas: configuration.focusAreas,
     focusAreaLabels,
     questionTopics,

@@ -361,7 +361,6 @@ export async function POST(request: Request) {
           );
 
           console.log("✅ AI analysis generated successfully!");
-          console.log(`  - Overall score: ${report.overallScore}`);
           console.log(`  - Performance rating: ${report.performanceRating} stars`);
           console.log(`  - Strengths count: ${report.strengths.length}`);
           console.log(`  - Weaknesses count: ${report.weaknesses.length}`);
@@ -371,7 +370,6 @@ export async function POST(request: Request) {
           const savedReport = await prisma.interviewReport.create({
             data: {
               interviewId: interview.id,
-              overallScore: report.overallScore,
               performanceRating: report.performanceRating,
               recommendation: null, // Deprecated field
               strengths: JSON.stringify(report.strengths),
@@ -405,7 +403,6 @@ export async function POST(request: Request) {
                 year: "numeric",
               }),
               interviewId: interview.id,
-              overallScore: savedReport.overallScore,
               performanceRating: savedReport.performanceRating || undefined,
               recommendation: savedReport.recommendation || undefined,
             });

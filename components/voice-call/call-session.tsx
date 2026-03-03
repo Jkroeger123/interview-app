@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { CallControlBar } from "./call-control-bar";
 import { AvatarDisplay } from "./avatar-display";
 import { AgentStateIndicator } from "./agent-state-indicator";
+import { AvatarCaptions } from "./avatar-captions";
 import { toast } from "sonner";
 import { Loader2, CheckCircle2 } from "lucide-react";
 
@@ -117,6 +118,9 @@ export function CallSession({
         onVideoReady={handleVideoReady}
         cameraVisible={cameraVisible}
       />
+
+      {/* Real-time captions for avatar speech */}
+      {sessionStarted && interviewerJoined && <AvatarCaptions />}
 
       {/* Status overlay */}
       {sessionStarted && !interviewerJoined && (
