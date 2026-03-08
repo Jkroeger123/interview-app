@@ -148,10 +148,43 @@ export async function GET(request: Request) {
 
     console.log(`🎉 Cleanup complete: ${deletedCount} interviews deleted from database`);
 
+    // Clean up abandoned draft interviews (older than 24 hours)
+    const oneDayAgo = new Date(now);
+    oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+    
+    const abandonedDrafts = await prisma.interview.findMany({
+      where: {
+        status: "draft",
+        startedAt: {
+          lt: oneDayAgo,
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    console.log(`🗑️ Found ${abandonedDrafts.length} abandoned draft interviews to delete`);
+
+    let draftsDeleted = 0;
+    for (const draft of abandonedDrafts) {
+      try {
+        await prisma.interview.delete({
+          where: { id: draft.id },
+        });
+        draftsDeleted++;
+      } catch (error) {
+        console.error(`❌ Error deleting draft ${draft.id}:`, error);
+      }
+    }
+
+    console.log(`✅ Deleted ${draftsDeleted} abandoned draft interviews`);
+
     return NextResponse.json({
       success: true,
       warningsSent: expiringInterviews.length,
       interviewsDeleted: deletedCount,
+      draftsDeleted: draftsDeleted,
       note: "S3 files are automatically deleted by AWS Lifecycle Rules",
     });
   } catch (error) {

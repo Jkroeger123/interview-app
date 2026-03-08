@@ -26,6 +26,7 @@ import { useEffect, useState } from "react";
 import { LanguageSelector } from "@/components/interview/language-selector";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { InterviewDocumentUpload } from "@/components/interview/interview-document-upload";
+import { ParticipantNamesInput } from "@/components/interview/participant-names-input";
 import Link from "next/link";
 
 interface ConfigureInterviewClientProps {
@@ -34,7 +35,7 @@ interface ConfigureInterviewClientProps {
 
 export function ConfigureInterviewClient({ userCredits }: ConfigureInterviewClientProps) {
   const router = useRouter();
-  const { configuration, setDuration, toggleFocusArea } = useInterview();
+  const { configuration, setDuration, toggleFocusArea, setParticipantNames } = useInterview();
   const [draftInterviewId, setDraftInterviewId] = useState<string | null>(null);
   const [isLoadingDraft, setIsLoadingDraft] = useState(false);
 
@@ -82,12 +83,23 @@ export function ConfigureInterviewClient({ userCredits }: ConfigureInterviewClie
     (d) => d.value === configuration.duration
   );
 
+  // Check if this is a marriage/fiance visa (requires dual participants)
+  const isMarriageVisa = configuration.visaType === "fiance" || configuration.visaType === "immigrant";
+  const requiresParticipantNames = isMarriageVisa;
+
   // Calculate required credits based on duration
   const requiredCredits = selectedDuration?.credits || 10;
   const hasEnoughCredits = userCredits >= requiredCredits;
 
   const handleNext = () => {
     if (!hasEnoughCredits) return;
+    
+    // Validate participant names for marriage visas
+    if (requiresParticipantNames && (!configuration.participant1Name || !configuration.participant2Name)) {
+      alert("Please enter both participant names for the marriage visa interview.");
+      return;
+    }
+    
     // Go to interview ready page
     router.push("/interview-ready");
   };
@@ -206,6 +218,15 @@ export function ConfigureInterviewClient({ userCredits }: ConfigureInterviewClie
 
           {/* Interview Language */}
           <LanguageSelector />
+
+          {/* Participant Names (Marriage/Fiance Visas Only) */}
+          {isMarriageVisa && (
+            <ParticipantNamesInput
+              participant1Name={configuration.participant1Name}
+              participant2Name={configuration.participant2Name}
+              onParticipantNamesChange={setParticipantNames}
+            />
+          )}
 
           {/* Focus Areas */}
           <div>

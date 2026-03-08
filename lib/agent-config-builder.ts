@@ -20,6 +20,10 @@ export interface AgentConfig {
     name: string;
     userId: string;
   };
+  // Dual participant support (for marriage/fiance visas)
+  participant1Name?: string; // U.S. citizen / petitioner
+  participant2Name?: string; // Foreign national / beneficiary
+  isDualParticipant?: boolean;
 }
 
 /**
@@ -66,6 +70,11 @@ export function buildAgentConfig(
   // Note: Ragie requires lowercase only (pattern: ^[a-z0-9_-]+$)
   const ragieGlobalPartition = `visa-${configuration.visaType}`;
 
+  // Check if this is a dual-participant interview (marriage/fiance visa)
+  const isDualParticipant = Boolean(
+    configuration.participant1Name && configuration.participant2Name
+  );
+
   return {
     visaType: configuration.visaType,
     visaCode: visaType.code,
@@ -81,6 +90,10 @@ export function buildAgentConfig(
     agentPromptContext: visaType.agentPromptContext,
     interviewLanguage: configuration.interviewLanguage || "en", // Default to English
     userInfo,
+    // Dual participant info (if applicable)
+    participant1Name: configuration.participant1Name,
+    participant2Name: configuration.participant2Name,
+    isDualParticipant,
   };
 }
 

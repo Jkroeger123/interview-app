@@ -282,6 +282,7 @@ export async function getUserInterviews() {
     const interviews = await prisma.interview.findMany({
       where: {
         clerkId: user.id,
+        status: "completed", // Only show completed interviews (not draft or in_progress)
         // Expired interviews are automatically deleted, no need to filter
       },
       include: {

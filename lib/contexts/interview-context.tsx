@@ -19,6 +19,9 @@ export interface InterviewConfiguration {
   focusAreas: string[];
   documents: UploadedDocument[];
   interviewLanguage: string; // ISO 639-1 language code (e.g., "en", "es", "zh")
+  // Dual participant support (for marriage/fiance visas)
+  participant1Name?: string; // U.S. citizen / petitioner
+  participant2Name?: string; // Foreign national / beneficiary
 }
 
 interface InterviewContextType {
@@ -29,6 +32,7 @@ interface InterviewContextType {
   addDocument: (document: UploadedDocument) => void;
   removeDocument: (documentId: string) => void;
   setInterviewLanguage: (language: string) => void;
+  setParticipantNames: (participant1: string, participant2: string) => void;
   resetConfiguration: () => void;
 }
 
@@ -89,6 +93,14 @@ export function InterviewProvider({ children }: { children: ReactNode }) {
     setConfiguration((prev) => ({ ...prev, interviewLanguage: language }));
   };
 
+  const setParticipantNames = (participant1: string, participant2: string) => {
+    setConfiguration((prev) => ({
+      ...prev,
+      participant1Name: participant1,
+      participant2Name: participant2,
+    }));
+  };
+
   const resetConfiguration = () => {
     setConfiguration(defaultConfiguration);
   };
@@ -103,6 +115,7 @@ export function InterviewProvider({ children }: { children: ReactNode }) {
         addDocument,
         removeDocument,
         setInterviewLanguage,
+        setParticipantNames,
         resetConfiguration,
       }}
     >
