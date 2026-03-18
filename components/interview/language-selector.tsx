@@ -11,11 +11,11 @@ import {
 import { Label } from "@/components/ui/label";
 import { Globe } from "lucide-react";
 
-// Supported languages with Cartesia Sonic-3 TTS + Ink Whisper STT
+// Supported languages with Cartesia Sonic-3 TTS + Deepgram Nova-3 STT
+// Only includes languages supported by BOTH providers
 const LANGUAGES = [
   { code: "en", name: "English", nativeName: "English" },
   { code: "es", name: "Spanish", nativeName: "Español" },
-  { code: "zh", name: "Chinese", nativeName: "中文" },
   { code: "hi", name: "Hindi", nativeName: "हिन्दी" },
   { code: "ar", name: "Arabic", nativeName: "العربية" },
   { code: "pt", name: "Portuguese", nativeName: "Português" },
@@ -37,11 +37,8 @@ const LANGUAGES = [
   { code: "bn", name: "Bengali", nativeName: "বাংলা" },
   { code: "te", name: "Telugu", nativeName: "తెలుగు" },
   { code: "ta", name: "Tamil", nativeName: "தமிழ்" },
-  { code: "gu", name: "Gujarati", nativeName: "ગુજરાતી" },
   { code: "kn", name: "Kannada", nativeName: "ಕನ್ನಡ" },
-  { code: "ml", name: "Malayalam", nativeName: "മലയാളം" },
   { code: "mr", name: "Marathi", nativeName: "मराठी" },
-  { code: "pa", name: "Punjabi", nativeName: "ਪੰਜਾਬੀ" },
   { code: "he", name: "Hebrew", nativeName: "עברית" },
   { code: "uk", name: "Ukrainian", nativeName: "Українська" },
   { code: "bg", name: "Bulgarian", nativeName: "Български" },
@@ -54,7 +51,6 @@ const LANGUAGES = [
   { code: "da", name: "Danish", nativeName: "Dansk" },
   { code: "no", name: "Norwegian", nativeName: "Norsk" },
   { code: "hu", name: "Hungarian", nativeName: "Magyar" },
-  { code: "ka", name: "Georgian", nativeName: "ქართული" },
 ];
 
 export function LanguageSelector() {
