@@ -13,6 +13,7 @@ import { AgentStateIndicator } from "./agent-state-indicator";
 import { AvatarCaptions } from "./avatar-captions";
 import { toast } from "sonner";
 import { Loader2, CheckCircle2 } from "lucide-react";
+import { interviewErrors, interviewEvents } from "@/lib/posthog-errors";
 
 interface CallSessionProps {
   config: any;
@@ -47,6 +48,13 @@ export function CallSession({
             agentState === "connecting"
               ? "Interviewer did not join the room. "
               : "Interviewer connected but did not complete initializing. ";
+
+          // Track error in PostHog
+          interviewErrors.agentNotJoined({
+            timeoutMs: 20_000,
+            agentState,
+            roomName: room.name,
+          });
 
           toast.error("Interview session ended", {
             description: reason + "Please try again.",
@@ -103,6 +111,11 @@ export function CallSession({
     if (!interviewerJoined) {
       setInterviewerJoined(true);
       toast.success("Interviewer has joined");
+      
+      // Track successful agent join
+      interviewEvents.agentJoined({
+        roomName: room.name,
+      });
     }
   };
 

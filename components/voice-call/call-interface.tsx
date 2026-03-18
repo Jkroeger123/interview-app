@@ -21,6 +21,7 @@ import { CallWelcome } from "./call-welcome";
 import { CallSession } from "./call-session";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { interviewErrors, interviewEvents } from "@/lib/posthog-errors";
 
 interface CallInterfaceProps {
   config: LiveKitConfig;
@@ -138,6 +139,19 @@ export const CallInterface = forwardRef<
       setIsConnected(false);
       isConnectingRef.current = false;
 
+      // Track disconnection if it wasn't user-initiated
+      const reasonStr = typeof reason === 'string' ? reason : reason?.reason || 'unknown';
+      if (reasonStr !== 'user_initiated' && reasonStr !== 'browser_closed') {
+        interviewErrors.unexpectedDisconnect({
+          reason: reasonStr,
+          roomName: room.name,
+          elapsedTimeMs: Date.now() - mountTimeRef.current,
+        });
+      } else {
+        // Track normal user disconnect
+        interviewEvents.userDisconnected({ reason: reasonStr });
+      }
+
       // Call the onDisconnect callback if provided (for routing to completion page)
       if (onDisconnect) {
         console.log("🔴 Calling onDisconnect callback (routing to completion)");
@@ -150,6 +164,18 @@ export const CallInterface = forwardRef<
 
     const onMediaDevicesError = (error: Error) => {
       console.error("❌ MEDIA DEVICES ERROR:", error);
+      
+      // Track media device error in PostHog
+      interviewErrors.mediaDeviceError({
+        error,
+        deviceType: error.message.toLowerCase().includes('microphone') 
+          ? 'microphone' 
+          : error.message.toLowerCase().includes('camera') 
+            ? 'camera' 
+            : 'unknown',
+        roomName: room.name,
+      });
+      
       toast.error("Media Device Error", {
         description: `${error.name}: ${error.message}`,
       });
@@ -328,6 +354,11 @@ export const CallInterface = forwardRef<
       await room.localParticipant.setMicrophoneEnabled(true);
       console.log("🎤 Microphone enabled");
 
+      // Track interview started
+      interviewEvents.started({
+        roomName: connectionDetails.roomName,
+      });
+
       console.log("✅ Connection sequence completed successfully");
     } catch (error: any) {
       console.error("❌ CONNECTION ERROR:", {
@@ -335,6 +366,12 @@ export const CallInterface = forwardRef<
         name: error?.name,
         message: error?.message,
         mountAge: Date.now() - mountTimeRef.current,
+      });
+
+      // Track connection error in PostHog
+      interviewErrors.connectionFailed({
+        error: error instanceof Error ? error : new Error(error?.message || 'Unknown error'),
+        roomName: roomRef.current.name,
       });
 
       toast.error("Connection Error", {

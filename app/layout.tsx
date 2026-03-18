@@ -7,6 +7,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { CrispChat } from "@/components/crisp-chat";
 import { PostHogProvider } from "@/components/posthog-provider";
 import { PostHogIdentify } from "@/components/posthog-identify";
+import { ErrorBoundary } from "@/components/error-boundary";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -36,14 +37,16 @@ export default function RootLayout({
           className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         >
           <PostHogProvider>
-            <PostHogIdentify />
-            <QueryProvider>
-              <InterviewProvider>
-                {children}
-              </InterviewProvider>
-            </QueryProvider>
-            <Toaster />
-            <CrispChat />
+            <ErrorBoundary>
+              <PostHogIdentify />
+              <QueryProvider>
+                <InterviewProvider>
+                  {children}
+                </InterviewProvider>
+              </QueryProvider>
+              <Toaster />
+              <CrispChat />
+            </ErrorBoundary>
           </PostHogProvider>
         </body>
       </html>
