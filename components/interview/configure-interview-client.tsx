@@ -25,7 +25,7 @@ import { ChevronLeft, ChevronRight, Coins, Info, AlertCircle } from "lucide-reac
 import { useEffect, useState } from "react";
 import { LanguageSelector } from "@/components/interview/language-selector";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { InterviewDocumentUpload } from "@/components/interview/interview-document-upload";
+import { EphemeralFileUpload } from "@/components/interview/ephemeral-file-upload";
 import { ParticipantNamesInput } from "@/components/interview/participant-names-input";
 import Link from "next/link";
 
@@ -269,11 +269,9 @@ export function ConfigureInterviewClient({ userCredits }: ConfigureInterviewClie
       </Card>
 
       {/* Document Upload Section */}
-      {draftInterviewId && !isLoadingDraft && (
-        <div className="mt-6">
-          <InterviewDocumentUpload interviewId={draftInterviewId} />
-        </div>
-      )}
+      <div className="mt-6">
+        <EphemeralFileUpload />
+      </div>
 
       {/* Insufficient Credits Warning */}
       {!hasEnoughCredits && (

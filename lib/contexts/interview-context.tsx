@@ -13,11 +13,21 @@ export interface UploadedDocument {
   ragieDocumentId?: string; // Ragie document ID for RAG retrieval
 }
 
+// Ephemeral file for direct LLM context (not stored in Ragie)
+export interface EphemeralFile {
+  id: string;
+  name: string;
+  type: string; // MIME type
+  size: number;
+  url: string; // Signed S3 URL
+}
+
 export interface InterviewConfiguration {
   visaType: VisaTypeId | null;
   duration: InterviewDuration;
   focusAreas: string[];
   documents: UploadedDocument[];
+  ephemeralFiles: EphemeralFile[]; // Files sent directly to LLM context
   interviewLanguage: string; // ISO 639-1 language code (e.g., "en", "es", "zh")
   // Dual participant support (for marriage/fiance visas)
   participant1Name?: string; // U.S. citizen / petitioner
@@ -31,6 +41,8 @@ interface InterviewContextType {
   toggleFocusArea: (areaId: string) => void;
   addDocument: (document: UploadedDocument) => void;
   removeDocument: (documentId: string) => void;
+  addEphemeralFile: (file: EphemeralFile) => void;
+  removeEphemeralFile: (fileId: string) => void;
   setInterviewLanguage: (language: string) => void;
   setParticipantNames: (participant1: string, participant2: string) => void;
   resetConfiguration: () => void;
@@ -45,6 +57,7 @@ const defaultConfiguration: InterviewConfiguration = {
   duration: "basic",
   focusAreas: [],
   documents: [],
+  ephemeralFiles: [],
   interviewLanguage: "en", // Default to English
 };
 
@@ -59,6 +72,7 @@ export function InterviewProvider({ children }: { children: ReactNode }) {
       // Reset focus areas and documents when changing visa type
       focusAreas: [],
       documents: [],
+      ephemeralFiles: [],
     }));
   };
 
@@ -89,6 +103,20 @@ export function InterviewProvider({ children }: { children: ReactNode }) {
     }));
   };
 
+  const addEphemeralFile = (file: EphemeralFile) => {
+    setConfiguration((prev) => ({
+      ...prev,
+      ephemeralFiles: [...prev.ephemeralFiles, file],
+    }));
+  };
+
+  const removeEphemeralFile = (fileId: string) => {
+    setConfiguration((prev) => ({
+      ...prev,
+      ephemeralFiles: prev.ephemeralFiles.filter((f) => f.id !== fileId),
+    }));
+  };
+
   const setInterviewLanguage = (language: string) => {
     setConfiguration((prev) => ({ ...prev, interviewLanguage: language }));
   };
@@ -114,6 +142,8 @@ export function InterviewProvider({ children }: { children: ReactNode }) {
         toggleFocusArea,
         addDocument,
         removeDocument,
+        addEphemeralFile,
+        removeEphemeralFile,
         setInterviewLanguage,
         setParticipantNames,
         resetConfiguration,

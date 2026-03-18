@@ -2,6 +2,13 @@ import type { InterviewConfiguration } from "./contexts/interview-context";
 import { VISA_TYPES, INTERVIEW_DURATIONS } from "./visa-types";
 import { getQuestionBank } from "./question-banks";
 
+// File to be sent directly to LLM context
+export interface AgentFile {
+  name: string;
+  type: string; // MIME type
+  url: string; // Signed URL to fetch file
+}
+
 export interface AgentConfig {
   visaType: string;
   visaCode: string;
@@ -20,6 +27,8 @@ export interface AgentConfig {
     name: string;
     userId: string;
   };
+  // Files to send directly to LLM (images, PDFs)
+  files?: AgentFile[];
   // Dual participant support (for marriage/fiance visas)
   participant1Name?: string; // U.S. citizen / petitioner
   participant2Name?: string; // Foreign national / beneficiary
@@ -75,6 +84,13 @@ export function buildAgentConfig(
     configuration.participant1Name && configuration.participant2Name
   );
 
+  // Map ephemeral files to agent format
+  const files: AgentFile[] = (configuration.ephemeralFiles || []).map((f) => ({
+    name: f.name,
+    type: f.type,
+    url: f.url,
+  }));
+
   return {
     visaType: configuration.visaType,
     visaCode: visaType.code,
@@ -90,6 +106,8 @@ export function buildAgentConfig(
     agentPromptContext: visaType.agentPromptContext,
     interviewLanguage: configuration.interviewLanguage || "en", // Default to English
     userInfo,
+    // Files to send directly to LLM
+    files: files.length > 0 ? files : undefined,
     // Dual participant info (if applicable)
     participant1Name: configuration.participant1Name,
     participant2Name: configuration.participant2Name,
