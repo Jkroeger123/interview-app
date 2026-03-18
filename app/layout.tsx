@@ -4,6 +4,9 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { InterviewProvider } from "@/lib/contexts/interview-context";
 import { QueryProvider } from "@/lib/providers/query-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { CrispChat } from "@/components/crisp-chat";
+import { PostHogProvider } from "@/components/posthog-provider";
+import { PostHogIdentify } from "@/components/posthog-identify";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -32,12 +35,16 @@ export default function RootLayout({
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         >
-          <QueryProvider>
-            <InterviewProvider>
-              {children}
-            </InterviewProvider>
-          </QueryProvider>
-          <Toaster />
+          <PostHogProvider>
+            <PostHogIdentify />
+            <QueryProvider>
+              <InterviewProvider>
+                {children}
+              </InterviewProvider>
+            </QueryProvider>
+            <Toaster />
+            <CrispChat />
+          </PostHogProvider>
         </body>
       </html>
     </ClerkProvider>
