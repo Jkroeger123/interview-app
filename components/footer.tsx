@@ -15,7 +15,7 @@ export function Footer() {
             <a href="/privacy" className="hover:text-foreground transition-colors">
               Privacy
             </a>
-            <a href="/contact" className="hover:text-foreground transition-colors">
+            <a href="mailto:support@vysa.ai" className="hover:text-foreground transition-colors">
               Contact
             </a>
           </div>
