@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { CallInterface } from "@/components/voice-call/call-interface";
@@ -37,6 +37,11 @@ export default function CallPage() {
     }
   }, [configuration, user]);
 
+  // Handle when the interview session ends (agent leaves or user disconnects)
+  const handleDisconnect = useCallback(() => {
+    router.push("/interview-complete");
+  }, [router]);
+
   if (!configuration.visaType || !agentConfig) {
     return null;
   }
@@ -53,7 +58,11 @@ export default function CallPage() {
   return (
     <div className="min-h-screen">
       <Navbar />
-      <CallInterface config={config} agentConfig={agentConfig} />
+      <CallInterface 
+        config={config} 
+        agentConfig={agentConfig} 
+        onDisconnect={handleDisconnect}
+      />
       <Toaster />
     </div>
   );

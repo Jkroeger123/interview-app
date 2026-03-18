@@ -9,6 +9,7 @@ import {
   calculateTranscriptStats,
   type InterviewMetadata,
 } from "@/lib/interview-classifier";
+import { serverErrors, serverEvents } from "@/lib/posthog-server";
 
 /**
  * POST /api/interviews/session-report
@@ -301,6 +302,16 @@ export async function POST(request: Request) {
         }
       } catch (error) {
         console.error("❌ Error during credit classification:", error);
+        
+        // Track billing error in PostHog
+        await serverErrors.billingError({
+          error: error instanceof Error ? error : new Error(String(error)),
+          operation: 'charge',
+          userId: interview.userId,
+          amount: interview.creditsPlanned ?? 0,
+          interviewId: interview.id,
+        });
+        
         // Don't fail the whole request - mark as error and continue
         await prisma.interview.update({
           where: { id: interview.id },
@@ -370,6 +381,7 @@ export async function POST(request: Request) {
           const savedReport = await prisma.interviewReport.create({
             data: {
               interviewId: interview.id,
+              overallScore: report.performanceRating, // Legacy field - use same value as performanceRating
               performanceRating: report.performanceRating,
               recommendation: null, // Deprecated field
               strengths: JSON.stringify(report.strengths),
@@ -382,6 +394,12 @@ export async function POST(request: Request) {
           });
 
           console.log("✅ AI report saved successfully to database");
+          
+          // Track successful report generation
+          await serverEvents.reportGenerated({
+            interviewId: interview.id,
+            userId: interview.userId,
+          });
 
           // Send email notification that report is ready
           try {
@@ -424,6 +442,14 @@ export async function POST(request: Request) {
           if (error?.response) {
             console.error("  - API response:", error.response);
           }
+          
+          // Track report generation error in PostHog
+          await serverErrors.reportGenerationError({
+            error: error instanceof Error ? error : new Error(error?.message || 'Unknown error'),
+            interviewId: interview.id,
+            stage: 'analysis',
+            userId: interview.userId,
+          });
         }
       }
     } else {
@@ -447,6 +473,14 @@ export async function POST(request: Request) {
     console.error("❌ Error stack:", error instanceof Error ? error.stack : "No stack");
     console.error("❌ Room name from request:", body?.roomName || "unknown");
     console.error("❌ Visa type from request:", body?.sessionReport?.visaType || "unknown");
+    
+    // Track API error in PostHog
+    await serverErrors.apiError({
+      endpoint: '/api/interviews/session-report',
+      method: 'POST',
+      error: error instanceof Error ? error : new Error(String(error)),
+      statusCode: 500,
+    });
     
     return NextResponse.json(
       {

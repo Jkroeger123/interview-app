@@ -202,7 +202,7 @@ export const interviewEvents = {
     posthog.capture('interview_agent_joined', context)
   },
 
-  completed: (context: { interviewId?: string; durationMs?: number; visaType?: string }) => {
+  completed: (context: { interviewId?: string; durationMs?: number; visaType?: string; roomName?: string }) => {
     posthog.capture('interview_completed', context)
   },
 

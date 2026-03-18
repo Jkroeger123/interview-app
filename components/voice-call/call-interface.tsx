@@ -261,6 +261,28 @@ export const CallInterface = forwardRef<
         identity: participant.identity,
         sid: participant.sid,
       });
+
+      // Check if the agent/interviewer left
+      const isAgent = participant.identity.toLowerCase().includes("agent");
+      
+      if (isAgent) {
+        console.log("🎤 Agent left the interview - ending session");
+        
+        // Track interview completion
+        interviewEvents.completed({
+          roomName: room.name,
+          durationMs: Date.now() - mountTimeRef.current,
+        });
+
+        toast.success("Interview Complete", {
+          description: "The interviewer has ended the session.",
+        });
+
+        // Small delay to let the toast show, then disconnect
+        setTimeout(() => {
+          room.disconnect();
+        }, 500);
+      }
     };
 
     room.on(RoomEvent.Connected, onConnected);

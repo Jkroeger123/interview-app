@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendDeletionWarningEmail } from "@/lib/email";
 import { VISA_TYPES } from "@/lib/visa-types";
+import { serverErrors, serverEvents } from "@/lib/posthog-server";
 
 // This endpoint should be called by a cron job (e.g., Vercel Cron, external service)
 // Call it daily to check for expiring interviews and send warning emails
@@ -95,10 +96,26 @@ export async function GET(request: Request) {
             data: { expirationWarningSent: true },
           });
 
+          // Track email sent
+          await serverEvents.emailSent({
+            type: 'deletion_warning',
+            userId: interview.userId,
+            to: interview.user.email,
+          });
+
           console.log(`✅ Warning email sent and marked for interview: ${interview.id}`);
           emailsSent++;
         } else {
           console.error(`⚠️ Failed to send email for interview ${interview.id}:`, emailResult.error);
+          
+          // Track email failure
+          await serverErrors.externalServiceError({
+            service: 'resend',
+            operation: 'send_deletion_warning_email',
+            error: new Error(emailResult.error || 'Failed to send email'),
+            userId: interview.userId,
+            interviewId: interview.id,
+          });
         }
       } catch (error) {
         console.error(`❌ Error sending warning email for interview ${interview.id}:`, error);
@@ -189,6 +206,13 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     console.error("❌ Error checking expiring interviews:", error);
+    
+    // Track cron job error in PostHog
+    await serverErrors.cronError({
+      jobName: 'check-expiring-interviews',
+      error: error instanceof Error ? error : new Error(String(error)),
+    });
+    
     return NextResponse.json(
       {
         success: false,
