@@ -4,15 +4,24 @@ import {
   Briefcase,
   Users,
   Heart,
+  Plane,
+  Music,
+  Landmark,
   type LucideIcon,
 } from "lucide-react";
+import {
+  LIBRARY_DERIVED_INTERVIEWS,
+  LIBRARY_VISA_TYPE_IDS,
+  type LibraryVisaTypeId,
+} from "./library-derived-interviews";
 
-export type VisaTypeId =
+export type CoreVisaTypeId =
   | "tourist"
   | "student"
   | "work"
   | "immigrant"
   | "fiance";
+export type VisaTypeId = CoreVisaTypeId | LibraryVisaTypeId;
 
 export interface DocumentCategory {
   id: string;
@@ -39,7 +48,7 @@ export interface VisaType {
   agentPromptContext: string;
 }
 
-export const VISA_TYPES: Record<VisaTypeId, VisaType> = {
+const CORE_VISA_TYPES: Record<CoreVisaTypeId, VisaType> = {
   tourist: {
     id: "tourist",
     name: "Tourist Visa",
@@ -372,6 +381,45 @@ Real F-1 interviews are brief (3-7 minutes) and decisive. Focus on the most crit
     ],
     agentPromptContext: `This is a K-1 fiancé(e) visa interview. Verify the authenticity of the relationship, ensure the couple has met in person within the last 2 years, assess the genuineness of the intent to marry, and review financial support from the U.S. citizen sponsor.`,
   },
+};
+
+const LIBRARY_ICON_MAP: Record<
+  (typeof LIBRARY_DERIVED_INTERVIEWS)[LibraryVisaTypeId]["iconKey"],
+  LucideIcon
+> = {
+  home: Home,
+  graduationCap: GraduationCap,
+  briefcase: Briefcase,
+  users: Users,
+  heart: Heart,
+  plane: Plane,
+  music: Music,
+  landmark: Landmark,
+};
+
+const LIBRARY_VISA_TYPES = Object.fromEntries(
+  LIBRARY_VISA_TYPE_IDS.map((id) => {
+    const interview = LIBRARY_DERIVED_INTERVIEWS[id];
+    return [
+      id,
+      {
+        id,
+        name: interview.name,
+        code: interview.code,
+        description: interview.description,
+        icon: LIBRARY_ICON_MAP[interview.iconKey],
+        iconBgColor: interview.iconBgColor,
+        documentCategories: interview.documentCategories,
+        focusAreas: interview.focusAreas,
+        agentPromptContext: interview.agentPromptContext,
+      } satisfies VisaType,
+    ];
+  })
+) as Record<LibraryVisaTypeId, VisaType>;
+
+export const VISA_TYPES: Record<VisaTypeId, VisaType> = {
+  ...CORE_VISA_TYPES,
+  ...LIBRARY_VISA_TYPES,
 };
 
 export const INTERVIEW_DURATIONS = [

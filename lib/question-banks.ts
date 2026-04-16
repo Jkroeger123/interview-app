@@ -1,11 +1,15 @@
-import type { VisaTypeId } from "./visa-types";
+import {
+  LIBRARY_DERIVED_QUESTION_BANKS,
+  type LibraryVisaTypeId,
+} from "./library-derived-interviews";
+import type { CoreVisaTypeId, VisaTypeId } from "./visa-types";
 
 /**
  * Question banks for each visa type
  * These questions are used by the AI agent during interviews
  */
 
-export const QUESTION_BANKS: Record<VisaTypeId, string[]> = {
+const CORE_QUESTION_BANKS: Record<CoreVisaTypeId, string[]> = {
   tourist: [
     // Purpose of Visit
     "What is the purpose of your visit to the United States?",
@@ -492,11 +496,16 @@ export const QUESTION_BANKS: Record<VisaTypeId, string[]> = {
   ],
 };
 
+export const QUESTION_BANKS: Record<VisaTypeId, string[]> = {
+  ...CORE_QUESTION_BANKS,
+  ...(LIBRARY_DERIVED_QUESTION_BANKS as Record<LibraryVisaTypeId, string[]>),
+};
+
 /**
  * Get questions for a specific visa type
  */
 export function getQuestionBank(visaType: VisaTypeId): string[] {
-  return QUESTION_BANKS[visaType] || [];
+  return QUESTION_BANKS[visaType] ?? [];
 }
 
 /**

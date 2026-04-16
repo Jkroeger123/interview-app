@@ -84,7 +84,10 @@ export function ConfigureInterviewClient({ userCredits }: ConfigureInterviewClie
   );
 
   // Check if this is a marriage/fiance visa (requires dual participants)
-  const isMarriageVisa = configuration.visaType === "fiance" || configuration.visaType === "immigrant";
+  const isMarriageVisa =
+    configuration.visaType === "fiance" ||
+    configuration.visaType === "immigrant" ||
+    configuration.visaType === "k1";
   const requiresParticipantNames = isMarriageVisa;
 
   // Calculate required credits based on duration

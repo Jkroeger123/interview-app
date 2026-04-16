@@ -29,7 +29,24 @@ config({ path: '.env.local' });
 const RAGIE_API_KEY = process.env.RAGIE_API_KEY;
 const RAGIE_API_URL = 'https://api.ragie.ai/documents';
 
-const VISA_TYPES = ['tourist', 'student', 'work', 'immigrant', 'fiance'] as const;
+const VISA_TYPES = [
+  'tourist',
+  'student',
+  'work',
+  'immigrant',
+  'fiance',
+  'b1b2',
+  'f1',
+  'h1b',
+  'j1',
+  'k1',
+  'l1a',
+  'l1b',
+  'o1a',
+  'o1b',
+  'p',
+  'r1',
+] as const;
 
 interface UploadResult {
   visaType: string;

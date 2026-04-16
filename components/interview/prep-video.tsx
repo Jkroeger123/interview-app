@@ -3,16 +3,22 @@
 import { Card } from "@/components/ui/card";
 import { PlayCircle } from "lucide-react";
 import { useState } from "react";
+import { VISA_TYPES, type VisaTypeId } from "@/lib/visa-types";
 
 interface PrepVideoProps {
-  visaType: string;
+  visaType: VisaTypeId;
 }
 
 export function PrepVideo({ visaType }: PrepVideoProps) {
   const [hasWatched, setHasWatched] = useState(false);
 
-  // Video mapping for different visa types
-  const videoData: Record<string, { title: string; embedUrl: string; duration: string }> = {
+  const interview = VISA_TYPES[visaType];
+
+  // Base video mapping for core tracks (new tracks inherit closest base content)
+  const baseVideoData: Record<
+    string,
+    { title: string; embedUrl: string; duration: string }
+  > = {
     student: {
       title: "F-1 Student Visa Interview Preparation",
       embedUrl: "https://www.youtube.com/embed/placeholder-student-visa",
@@ -40,7 +46,31 @@ export function PrepVideo({ visaType }: PrepVideoProps) {
     },
   };
 
-  const video = videoData[visaType] || videoData.student;
+  const baseVideoKeyByVisaType: Record<VisaTypeId, keyof typeof baseVideoData> = {
+    tourist: "tourist",
+    b1b2: "tourist",
+    student: "student",
+    f1: "student",
+    j1: "student",
+    work: "work",
+    h1b: "work",
+    l1a: "work",
+    l1b: "work",
+    r1: "work",
+    o1a: "work",
+    o1b: "work",
+    p: "work",
+    immigrant: "immigrant",
+    fiance: "fiance",
+    k1: "fiance",
+  };
+
+  const baseVideo = baseVideoData[baseVideoKeyByVisaType[visaType]];
+  const dynamicTitle = `${interview.code} ${interview.name} Interview Preparation`;
+  const video = {
+    ...baseVideo,
+    title: dynamicTitle,
+  };
 
   return (
     <Card className="p-6">
