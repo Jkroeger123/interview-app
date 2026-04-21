@@ -15,7 +15,12 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 export function EphemeralFileUpload() {
-  const { configuration, addEphemeralFile, removeEphemeralFile } = useInterview();
+  const {
+    configuration,
+    addEphemeralFile,
+    removeEphemeralFile,
+    setAdditionalFocusContext,
+  } = useInterview();
   const [isUploading, setIsUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -181,6 +186,33 @@ export function EphemeralFileUpload() {
             })}
           </div>
         )}
+
+        {/* Additional testing context */}
+        <div className="space-y-2">
+          <label
+            htmlFor="additional-focus-context"
+            className="text-sm font-medium"
+          >
+            Additional Interview Focus{" "}
+            <span className="text-muted-foreground font-normal">(Optional)</span>
+          </label>
+          <p className="text-sm text-muted-foreground">
+            If you have a specific concern and want the system to focus on it,
+            please provide a thorough explanation to give our interviewer context.
+          </p>
+          <textarea
+            id="additional-focus-context"
+            value={configuration.additionalFocusContext}
+            onChange={(event) => setAdditionalFocusContext(event.target.value)}
+            placeholder="Example: I am worried about explaining a recent change in employment and a prior visa denial. Please stress-test my answers on consistency and credibility."
+            rows={5}
+            maxLength={2000}
+            className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+          />
+          <p className="text-xs text-muted-foreground text-right">
+            {configuration.additionalFocusContext.length}/2000
+          </p>
+        </div>
       </div>
     </Card>
   );

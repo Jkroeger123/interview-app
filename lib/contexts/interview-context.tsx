@@ -28,6 +28,7 @@ export interface InterviewConfiguration {
   focusAreas: string[];
   documents: UploadedDocument[];
   ephemeralFiles: EphemeralFile[]; // Files sent directly to LLM context
+  additionalFocusContext: string; // Extra user-provided concerns or testing context
   interviewLanguage: string; // ISO 639-1 language code (e.g., "en", "es", "zh")
   // Dual participant support (for marriage/fiance visas)
   participant1Name?: string; // U.S. citizen / petitioner
@@ -43,6 +44,7 @@ interface InterviewContextType {
   removeDocument: (documentId: string) => void;
   addEphemeralFile: (file: EphemeralFile) => void;
   removeEphemeralFile: (fileId: string) => void;
+  setAdditionalFocusContext: (context: string) => void;
   setInterviewLanguage: (language: string) => void;
   setParticipantNames: (participant1: string, participant2: string) => void;
   resetConfiguration: () => void;
@@ -58,6 +60,7 @@ const defaultConfiguration: InterviewConfiguration = {
   focusAreas: [],
   documents: [],
   ephemeralFiles: [],
+  additionalFocusContext: "",
   interviewLanguage: "en", // Default to English
 };
 
@@ -73,6 +76,7 @@ export function InterviewProvider({ children }: { children: ReactNode }) {
       focusAreas: [],
       documents: [],
       ephemeralFiles: [],
+      additionalFocusContext: "",
     }));
   };
 
@@ -121,6 +125,10 @@ export function InterviewProvider({ children }: { children: ReactNode }) {
     setConfiguration((prev) => ({ ...prev, interviewLanguage: language }));
   };
 
+  const setAdditionalFocusContext = (context: string) => {
+    setConfiguration((prev) => ({ ...prev, additionalFocusContext: context }));
+  };
+
   const setParticipantNames = (participant1: string, participant2: string) => {
     setConfiguration((prev) => ({
       ...prev,
@@ -144,6 +152,7 @@ export function InterviewProvider({ children }: { children: ReactNode }) {
         removeDocument,
         addEphemeralFile,
         removeEphemeralFile,
+        setAdditionalFocusContext,
         setInterviewLanguage,
         setParticipantNames,
         resetConfiguration,
