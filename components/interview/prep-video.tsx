@@ -54,15 +54,23 @@ export function PrepVideo({ visaType }: PrepVideoProps) {
     j1: "student",
     work: "work",
     h1b: "work",
+    h4: "fiance",
     l1a: "work",
     l1b: "work",
+    l2: "fiance",
     r1: "work",
     o1a: "work",
     o1b: "work",
     p: "work",
     immigrant: "immigrant",
+    mbgc: "fiance",
+    naturalization: "immigrant",
     fiance: "fiance",
     k1: "fiance",
+    h1b_site_beneficiary: "work",
+    h1b_site_employer: "work",
+    l1_site_beneficiary: "work",
+    l1_site_employer: "work",
   };
 
   const baseVideo = baseVideoData[baseVideoKeyByVisaType[visaType]];

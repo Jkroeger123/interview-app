@@ -102,6 +102,14 @@ export default async function ReportPage({ params }: PageProps) {
                   </Button>
                 </Link>
               )}
+              {interview.recordingStatus === "ready" && interview.recordingUrl && (
+                <Link href={`/api/interviews/${id}/video`}>
+                  <Button variant="outline" size="sm">
+                    <Download className="mr-2 h-4 w-4" />
+                    Download video
+                  </Button>
+                </Link>
+              )}
             </div>
           </div>
         </div>

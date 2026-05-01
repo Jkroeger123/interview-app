@@ -70,14 +70,9 @@ export function VideoPlayer({ recordingUrl, recordingStatus }: VideoPlayerProps)
 
   // Recording is ready
   return (
-    <Card>
+    <Card className="overflow-hidden">
       <CardContent className="p-0">
-        <video
-          controls
-          className="w-full rounded-lg"
-          preload="metadata"
-          controlsList="nodownload"
-        >
+        <video controls className="block w-full" preload="metadata">
           <source src={recordingUrl} type="video/mp4" />
           Your browser does not support the video tag.
         </video>

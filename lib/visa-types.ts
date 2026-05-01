@@ -14,6 +14,11 @@ import {
   LIBRARY_VISA_TYPE_IDS,
   type LibraryVisaTypeId,
 } from "./library-derived-interviews";
+import {
+  EXTENSION_INTERVIEWS,
+  EXTENSION_VISA_TYPE_IDS,
+  type ExtensionVisaTypeId,
+} from "./library-extension-interviews";
 
 export type CoreVisaTypeId =
   | "tourist"
@@ -21,7 +26,7 @@ export type CoreVisaTypeId =
   | "work"
   | "immigrant"
   | "fiance";
-export type VisaTypeId = CoreVisaTypeId | LibraryVisaTypeId;
+export type VisaTypeId = CoreVisaTypeId | LibraryVisaTypeId | ExtensionVisaTypeId;
 
 export interface DocumentCategory {
   id: string;
@@ -120,81 +125,9 @@ const CORE_VISA_TYPES: Record<CoreVisaTypeId, VisaType> = {
     description: "For academic studies at U.S. institutions",
     icon: GraduationCap,
     iconBgColor: "bg-purple-500/10",
-    documentCategories: [
-      {
-        id: "financial",
-        label: "Financial Documents",
-        description: "Bank statements, tax returns, pay stubs",
-        required: true,
-      },
-      {
-        id: "employment",
-        label: "Employment Letters",
-        description: "Employment verification, offer letters",
-        required: false,
-      },
-      {
-        id: "education",
-        label: "Educational Certificates",
-        description: "Degrees, transcripts, diplomas",
-        required: true,
-      },
-      {
-        id: "travel",
-        label: "Travel History",
-        description: "Previous visas, passport stamps",
-        required: false,
-      },
-      {
-        id: "property",
-        label: "Property Documents",
-        description: "Property ownership, lease agreements",
-        required: false,
-      },
-      {
-        id: "other",
-        label: "Other Documents",
-        description: "Invitation letters, sponsorship documents, I-20 form",
-        required: true,
-      },
-    ],
-    focusAreas: [
-      {
-        id: "financial",
-        label: "Financial Background",
-        description: "Proof of funds for tuition and living expenses",
-      },
-      {
-        id: "ties",
-        label: "Ties to Home Country",
-        description: "Family, property, and reasons to return after studies",
-      },
-      {
-        id: "education",
-        label: "Educational Background",
-        description: "Academic history and qualifications",
-      },
-      {
-        id: "career",
-        label: "Career Plans",
-        description: "Post-graduation plans and career goals",
-      },
-    ],
-    agentPromptContext: `This is an F-1 student visa interview governed by INA §214(b), which PRESUMES immigrant intent.
-
-CORE ASSESSMENT AREAS:
-1. NONIMMIGRANT INTENT: Strong ties to home country and clear plans to return after studies
-2. ACADEMIC PURPOSE: Genuine understanding of chosen program and how it fits career goals
-3. FINANCIAL ABILITY: Sufficient, legitimate funds for all years of study (tuition + living expenses)
-
-KEY PRINCIPLES:
-- Burden of proof is on the applicant to overcome presumption of immigrant intent
-- Be skeptical of vague, rehearsed answers
-- Probe inconsistencies between documents (I-20, DS-160) and verbal statements  
-- Red flags: overemphasis on OPT/work, weak home ties, suspicious finances, field mismatches
-- Verify applicant understands F-1 restrictions (no off-campus work, must maintain status)
-
-Real F-1 interviews are brief (3-7 minutes) and decisive. Focus on the most critical questions first.`,
+    documentCategories: LIBRARY_DERIVED_INTERVIEWS.f1.documentCategories,
+    focusAreas: LIBRARY_DERIVED_INTERVIEWS.f1.focusAreas,
+    agentPromptContext: LIBRARY_DERIVED_INTERVIEWS.f1.agentPromptContext,
   },
   work: {
     id: "work",
@@ -330,56 +263,9 @@ Real F-1 interviews are brief (3-7 minutes) and decisive. Focus on the most crit
     description: "For foreign fiancé(e)s of U.S. citizens",
     icon: Heart,
     iconBgColor: "bg-pink-500/10",
-    documentCategories: [
-      {
-        id: "financial",
-        label: "Financial Documents",
-        description:
-          "Bank statements, sponsor's tax returns, affidavit of support",
-        required: true,
-      },
-      {
-        id: "relationship",
-        label: "Relationship Evidence",
-        description: "Photos, messages, travel records together",
-        required: true,
-      },
-      {
-        id: "family",
-        label: "Family Documents",
-        description: "Birth certificate, divorce decrees (if applicable)",
-        required: true,
-      },
-      {
-        id: "other",
-        label: "Other Documents",
-        description: "Police certificates, medical exam results",
-        required: true,
-      },
-    ],
-    focusAreas: [
-      {
-        id: "relationship",
-        label: "Relationship History",
-        description: "How you met, communication history, visits",
-      },
-      {
-        id: "financial",
-        label: "Financial Background",
-        description: "Sponsor's ability to support you",
-      },
-      {
-        id: "intent",
-        label: "Marriage Intent",
-        description: "Wedding plans and future together",
-      },
-      {
-        id: "family",
-        label: "Family Relationships",
-        description: "Previous marriages, children, family approval",
-      },
-    ],
-    agentPromptContext: `This is a K-1 fiancé(e) visa interview. Verify the authenticity of the relationship, ensure the couple has met in person within the last 2 years, assess the genuineness of the intent to marry, and review financial support from the U.S. citizen sponsor.`,
+    documentCategories: LIBRARY_DERIVED_INTERVIEWS.k1.documentCategories,
+    focusAreas: LIBRARY_DERIVED_INTERVIEWS.k1.focusAreas,
+    agentPromptContext: LIBRARY_DERIVED_INTERVIEWS.k1.agentPromptContext,
   },
 };
 
@@ -417,9 +303,30 @@ const LIBRARY_VISA_TYPES = Object.fromEntries(
   })
 ) as Record<LibraryVisaTypeId, VisaType>;
 
+const EXTENSION_VISA_TYPES = Object.fromEntries(
+  EXTENSION_VISA_TYPE_IDS.map((id) => {
+    const interview = EXTENSION_INTERVIEWS[id];
+    return [
+      id,
+      {
+        id,
+        name: interview.name,
+        code: interview.code,
+        description: interview.description,
+        icon: LIBRARY_ICON_MAP[interview.iconKey],
+        iconBgColor: interview.iconBgColor,
+        documentCategories: interview.documentCategories,
+        focusAreas: interview.focusAreas,
+        agentPromptContext: interview.agentPromptContext,
+      } satisfies VisaType,
+    ];
+  })
+) as Record<ExtensionVisaTypeId, VisaType>;
+
 export const VISA_TYPES: Record<VisaTypeId, VisaType> = {
   ...CORE_VISA_TYPES,
   ...LIBRARY_VISA_TYPES,
+  ...EXTENSION_VISA_TYPES,
 };
 
 export const INTERVIEW_DURATIONS = [

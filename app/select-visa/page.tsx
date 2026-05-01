@@ -28,14 +28,14 @@ const VISA_GROUPS: VisaGroup[] = [
     id: "education",
     title: "Student and Exchange",
     description: "Academic and exchange visitor interview tracks",
-    matches: (visaType) => ["student", "f1", "j1"].includes(visaType.id),
+    matches: (visaType) => ["student", "j1"].includes(visaType.id),
   },
   {
     id: "employment",
     title: "Employment and Transfers",
-    description: "Employer-sponsored and intracompany transfer interviews",
+    description: "Employer-sponsored, intracompany transfer, and dependent interviews",
     matches: (visaType) =>
-      ["work", "h1b", "l1a", "l1b", "r1"].includes(visaType.id),
+      ["work", "h1b", "h4", "l1a", "l1b", "l2", "r1"].includes(visaType.id),
   },
   {
     id: "talent",
@@ -47,13 +47,25 @@ const VISA_GROUPS: VisaGroup[] = [
     id: "family",
     title: "Family and Relationship",
     description: "Relationship-based interview preparation",
-    matches: (visaType) => ["fiance", "k1"].includes(visaType.id),
+    matches: (visaType) => ["fiance", "mbgc"].includes(visaType.id),
   },
   {
     id: "immigration",
-    title: "Immigrant",
-    description: "Permanent residency and immigrant visa interviews",
-    matches: (visaType) => ["immigrant"].includes(visaType.id),
+    title: "Immigrant and Citizenship",
+    description: "Permanent residency, immigrant visa, and naturalization interviews",
+    matches: (visaType) => ["immigrant", "naturalization"].includes(visaType.id),
+  },
+  {
+    id: "site-visits",
+    title: "Site Visits and Investigations",
+    description: "USCIS FDNS post-approval site visits — workplace verification, not consular",
+    matches: (visaType) =>
+      [
+        "h1b_site_beneficiary",
+        "h1b_site_employer",
+        "l1_site_beneficiary",
+        "l1_site_employer",
+      ].includes(visaType.id),
   },
 ];
 
