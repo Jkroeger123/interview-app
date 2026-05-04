@@ -1,6 +1,6 @@
 import { UserButton } from "@clerk/nextjs";
 import Link from "next/link";
-import { FileText, History, Video } from "lucide-react";
+import { BookOpen, FileText, History, Video } from "lucide-react";
 import { CreditBalanceWidget } from "@/components/credits/credit-balance-widget";
 import { Button } from "@/components/ui/button";
 
@@ -32,6 +32,13 @@ export function Navbar() {
           >
             <History className="w-4 h-4" />
             Interview History
+          </Link>
+          <Link
+            href="/resources"
+            className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <BookOpen className="w-4 h-4" />
+            Resources
           </Link>
           <CreditBalanceWidget />
           <UserButton />

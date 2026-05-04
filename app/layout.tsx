@@ -8,6 +8,7 @@ import { CrispChat } from "@/components/crisp-chat";
 import { PostHogProvider } from "@/components/posthog-provider";
 import { PostHogIdentify } from "@/components/posthog-identify";
 import { ErrorBoundary } from "@/components/error-boundary";
+import { AgeGateGuard } from "@/components/age-gate-guard";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -39,6 +40,7 @@ export default function RootLayout({
           <PostHogProvider>
             <ErrorBoundary>
               <PostHogIdentify />
+              <AgeGateGuard />
               <QueryProvider>
                 <InterviewProvider>
                   {children}
