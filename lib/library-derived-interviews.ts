@@ -187,28 +187,28 @@ export const LIBRARY_DERIVED_INTERVIEWS: Record<LibraryVisaTypeId, LibraryDerive
     "focusAreas": [
       {
         "id": "petition-and-employment-details-1-40",
-        "label": "Petition and Employment Details (1\u201340)",
-        "description": "Targeted questioning for petition and employment details (1\u201340)"
+        "label": "Petition and Employment Details",
+        "description": "Targeted questioning for petition and employment details"
       },
       {
         "id": "specialty-occupation-and-educational-qualificati",
-        "label": "Specialty Occupation and Educational Qualifications (41\u201380)",
-        "description": "Targeted questioning for specialty occupation and educational qualifications (41\u201380)"
+        "label": "Specialty Occupation and Educational Qualifications",
+        "description": "Targeted questioning for specialty occupation and educational qualifications"
       },
       {
         "id": "immigration-history-and-visa-compliance-81-120",
-        "label": "Immigration History and Visa Compliance (81\u2013120)",
-        "description": "Targeted questioning for immigration history and visa compliance (81\u2013120)"
+        "label": "Immigration History and Visa Compliance",
+        "description": "Targeted questioning for immigration history and visa compliance"
       },
       {
         "id": "personal-background-and-intent-121-150",
-        "label": "Personal Background and Intent (121\u2013150)",
-        "description": "Targeted questioning for personal background and intent (121\u2013150)"
+        "label": "Personal Background and Intent",
+        "description": "Targeted questioning for personal background and intent"
       },
       {
         "id": "consular-interview-conduct-and-documentation-151",
-        "label": "Consular Interview Conduct and Documentation (151\u2013180)",
-        "description": "Targeted questioning for consular interview conduct and documentation (151\u2013180)"
+        "label": "Consular Interview Conduct and Documentation",
+        "description": "Targeted questioning for consular interview conduct and documentation"
       }
     ],
     "agentPromptContext": "This is a H-1B visa interview based on the provided Library training documents. Primary training sections: Petition and Employment Details (1\u201340); Specialty Occupation and Educational Qualifications (41\u201380); Immigration History and Visa Compliance (81\u2013120); Personal Background and Intent (121\u2013150); Consular Interview Conduct and Documentation (151\u2013180); Worksite, Employer Verification, and Risk Screening (181\u2013200). Focus on credibility, documentary consistency, legal eligibility, and intent. H-1B Visa Interview Preparation Guide How to Prepare for a Successful H-1B Consular Interview I. Overview of the H-1B Interview Process Conducted at a U.S. embassy or consulate abroad Verifies petition approval, employer, job duties, and applicant qualifications May include security screening or request for further documents (221(g))",
@@ -251,28 +251,28 @@ export const LIBRARY_DERIVED_INTERVIEWS: Record<LibraryVisaTypeId, LibraryDerive
     "focusAreas": [
       {
         "id": "program-purpose-and-eligibility-1-40",
-        "label": "Program Purpose and Eligibility (1\u201340)",
-        "description": "Targeted questioning for program purpose and eligibility (1\u201340)"
+        "label": "Program Purpose and Eligibility",
+        "description": "Targeted questioning for program purpose and eligibility"
       },
       {
         "id": "funding-and-financial-support-41-70",
-        "label": "Funding and Financial Support (41\u201370)",
-        "description": "Targeted questioning for funding and financial support (41\u201370)"
+        "label": "Funding and Financial Support",
+        "description": "Targeted questioning for funding and financial support"
       },
       {
         "id": "home-country-ties-and-intent-to-return-71-110",
-        "label": "Home Country Ties and Intent to Return (71\u2013110)",
-        "description": "Targeted questioning for home country ties and intent to return (71\u2013110)"
+        "label": "Home Country Ties and Intent to Return",
+        "description": "Targeted questioning for home country ties and intent to return"
       },
       {
         "id": "english-proficiency-and-communication-111-130",
-        "label": "English Proficiency and Communication (111\u2013130)",
-        "description": "Targeted questioning for english proficiency and communication (111\u2013130)"
+        "label": "English Proficiency and Communication",
+        "description": "Targeted questioning for english proficiency and communication"
       },
       {
         "id": "travel-and-immigration-history-131-160",
-        "label": "Travel and Immigration History (131\u2013160)",
-        "description": "Targeted questioning for travel and immigration history (131\u2013160)"
+        "label": "Travel and Immigration History",
+        "description": "Targeted questioning for travel and immigration history"
       }
     ],
     "agentPromptContext": "This is a J-1 visa interview based on the provided Library training documents. Primary training sections: Program Purpose and Eligibility (1\u201340); Funding and Financial Support (41\u201370); Home Country Ties and Intent to Return (71\u2013110); English Proficiency and Communication (111\u2013130); Travel and Immigration History (131\u2013160); Cultural Exchange and Integration (161\u2013180). Focus on credibility, documentary consistency, legal eligibility, and intent. J-1 Exchange Visitor Visa Interview Preparation Guide How to Prepare for a Successful J-1 Consular Interview I. Understand the Interview's Purpose The J-1 interview is conducted by a consular officer to verify: Your eligibility for the J-1 category The legitimacy of your exchange program",
@@ -369,28 +369,28 @@ export const LIBRARY_DERIVED_INTERVIEWS: Record<LibraryVisaTypeId, LibraryDerive
     "focusAreas": [
       {
         "id": "role-executive-managerial-capacity-questions-1-3",
-        "label": "Role & Executive / Managerial Capacity (Questions 1\u201330)",
-        "description": "Targeted questioning for role & executive / managerial capacity (questions 1\u201330)"
+        "label": "Role & Executive / Managerial Capacity",
+        "description": "Targeted questioning for role & executive / managerial capacity"
       },
       {
         "id": "organizational-structure-staffing-31-60",
-        "label": "Organizational Structure & Staffing (31\u201360)",
-        "description": "Targeted questioning for organizational structure & staffing (31\u201360)"
+        "label": "Organizational Structure & Staffing",
+        "description": "Targeted questioning for organizational structure & staffing"
       },
       {
         "id": "u-s-company-operations-business-reality-61-90",
-        "label": "U.S. Company Operations & Business Reality (61\u201390)",
-        "description": "Targeted questioning for u.s. company operations & business reality (61\u201390)"
+        "label": "U.S. Company Operations & Business Reality",
+        "description": "Targeted questioning for u.s. company operations & business reality"
       },
       {
         "id": "qualifying-corporate-relationship-91-115",
-        "label": "Qualifying Corporate Relationship (91\u2013115)",
-        "description": "Targeted questioning for qualifying corporate relationship (91\u2013115)"
+        "label": "Qualifying Corporate Relationship",
+        "description": "Targeted questioning for qualifying corporate relationship"
       },
       {
         "id": "prior-employment-background-116-135",
-        "label": "Prior Employment & Background (116\u2013135)",
-        "description": "Targeted questioning for prior employment & background (116\u2013135)"
+        "label": "Prior Employment & Background",
+        "description": "Targeted questioning for prior employment & background"
       }
     ],
     "agentPromptContext": "This is a L-1A visa interview based on the provided Library training documents. Primary training sections: Role & Executive / Managerial Capacity (Questions 1\u201330); Organizational Structure & Staffing (31\u201360); U.S. Company Operations & Business Reality (61\u201390); Qualifying Corporate Relationship (91\u2013115); Prior Employment & Background (116\u2013135); DS-160 & Application Consistency (136\u2013155). Focus on credibility, documentary consistency, legal eligibility, and intent. L-1A Visa Documents to Take to the Consulate Practical, Risk-Controlled Checklist 1. Core Mandatory Documents (Always Carry) These should be organized, clean, and immediately accessible. Valid for at least 6 months beyond intended U.S. entry Prior passports (if they contain U.S. visas or travel history)",
@@ -433,28 +433,28 @@ export const LIBRARY_DERIVED_INTERVIEWS: Record<LibraryVisaTypeId, LibraryDerive
     "focusAreas": [
       {
         "id": "background-basics-questions-1-15",
-        "label": "Background & Basics (Questions 1\u201315)",
-        "description": "Targeted questioning for background & basics (questions 1\u201315)"
+        "label": "Background & Basics",
+        "description": "Targeted questioning for background & basics"
       },
       {
         "id": "company-overview-operations-16-30",
-        "label": "Company Overview & Operations (16\u201330)",
-        "description": "Targeted questioning for company overview & operations (16\u201330)"
+        "label": "Company Overview & Operations",
+        "description": "Targeted questioning for company overview & operations"
       },
       {
         "id": "specialized-knowledge-definition-31-55",
-        "label": "Specialized Knowledge \u2013 Definition (31\u201355)",
-        "description": "Targeted questioning for specialized knowledge \u2013 definition (31\u201355)"
+        "label": "Specialized Knowledge \u2013 Definition",
+        "description": "Targeted questioning for specialized knowledge \u2013 definition"
       },
       {
         "id": "knowledge-acquisition-training-56-75",
-        "label": "Knowledge Acquisition & Training (56\u201375)",
-        "description": "Targeted questioning for knowledge acquisition & training (56\u201375)"
+        "label": "Knowledge Acquisition & Training",
+        "description": "Targeted questioning for knowledge acquisition & training"
       },
       {
         "id": "application-of-knowledge-in-the-u-s-role-76-100",
-        "label": "Application of Knowledge in the U.S. Role (76\u2013100)",
-        "description": "Targeted questioning for application of knowledge in the u.s. role (76\u2013100)"
+        "label": "Application of Knowledge in the U.S. Role",
+        "description": "Targeted questioning for application of knowledge in the u.s. role"
       }
     ],
     "agentPromptContext": "This is a L-1B visa interview based on the provided Library training documents. Primary training sections: Background & Basics (Questions 1\u201315); Company Overview & Operations (16\u201330); Specialized Knowledge \u2013 Definition (31\u201355); Knowledge Acquisition & Training (56\u201375); Application of Knowledge in the U.S. Role (76\u2013100); Transferability & U.S. Worker Comparison (101\u2013125). Focus on credibility, documentary consistency, legal eligibility, and intent. L-1B Visa Interview Preparation Guide How to Prepare for a Successful L-1B Consular Interview 1. Purpose of the L-1B Consular Interview Preparation therefore focuses on clarity, consistency, and disciplined explanation\u2014not memorization or document volume. 2. How Consular Officers Evaluate L-1B Cases Consular officers assess L-1B eligibility through three practical lenses:",

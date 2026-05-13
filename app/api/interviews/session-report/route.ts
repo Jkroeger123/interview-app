@@ -19,6 +19,11 @@ import { serverErrors, serverEvents } from "@/lib/posthog-server";
  * and saves them to the database, then triggers AI report generation.
  */
 
+// AI report generation (OpenAI classification + gpt-4o analysis) can run 30–60s
+// on long interviews. Without this, Vercel's default 10s/60s function timeout
+// silently kills report generation mid-flight and the user sees no report.
+export const maxDuration = 300;
+
 // Handle preflight OPTIONS request
 export async function OPTIONS() {
   return new NextResponse(null, {
